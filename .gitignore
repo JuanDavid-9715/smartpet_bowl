@@ -1,0 +1,43 @@
+# Local documentation (not published)
+docs/
+MEMORY.md
+scripts/
+
+# Secrets and credentials
+.env
+.env.*
+secrets.h
+config.json
+credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# KiCad local files
+*.kicad_prl
+fp-info-cache
+*-backups/
+*.bak
+*.kicad_pcb-bak
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

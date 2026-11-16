@@ -1,0 +1,6 @@
+Reference,Component,Quantity,Unit Price COP,Total COP,Notes
+U1,Raspberry Pi 4,1,320000,320000,Hub central
+U2,ESP32-S3,1,50000,50000,Controlador de plato
+M1,Servo MG996R,1,35000,35000,Tapa motorizada
+W1,HX711 + celda de carga 5kg,1,65000,65000,Medicion de consumo
+P1,Carcasa y electronica,1,80000,80000,Estructura de maqueta
