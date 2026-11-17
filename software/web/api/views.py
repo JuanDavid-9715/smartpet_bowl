@@ -89,3 +89,25 @@ def ingest(request):
 
 def health(request):
     return JsonResponse({"ok": True, "deployment": settings.DEPLOYMENT})
+
+
+def plan(request):
+    """Horarios y raciones que la Raspberry usa para saber a quien servir."""
+    if not _authorized(request):
+        return JsonResponse({"error": "token invalido"}, status=401)
+    code = request.GET.get("feeder", "").strip()
+    feeder = Feeder.objects.filter(code=code).first()
+    if feeder is None:
+        return JsonResponse({"error": "comedero desconocido"}, status=404)
+    pets = []
+    for pet in feeder.pets.filter(archived=False):
+        pets.append({
+            "name": pet.name,
+            "species": pet.species,
+            "target_grams": float(pet.target_grams or 0),
+            "meals": [
+                {"time": meal.time.strftime("%H:%M"), "grams": float(meal.grams)}
+                for meal in pet.meal_times.all()
+            ],
+        })
+    return JsonResponse({"feeder": feeder.code, "pets": pets})

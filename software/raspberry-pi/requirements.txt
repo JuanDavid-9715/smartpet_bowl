@@ -1,5 +1,6 @@
-# SmartPet Bowl — Requisitos Python (Raspberry Pi 4)
-opencv-python==4.8.0.74
-paho-mqtt==1.6.1
-numpy==1.24.3
-sqlite3 (built-in)
+paho-mqtt>=2.1
+opencv-python-headless>=4.9
+numpy>=1.26
+onnxruntime>=1.17
+requests>=2.31
+python-dotenv>=1.0
