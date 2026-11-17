@@ -1,0 +1,96 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="arq01" name="Arquitectura general">
+    <mxGraphModel dx="1100" dy="760" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="760" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="t1" value="Comedor (junto al plato)" style="text;html=1;fontSize=13;fontStyle=1;fontColor=#6B6580;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="360" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="cam" value="Mini cámara&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;detecta color y silueta&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B21B6;fontColor=#171326;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="160" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="esp" value="ESP32-S3&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;controla servo y pesaje&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#5B21B6;strokeWidth=2;fontColor=#171326;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="150" width="160" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="hx" value="HX711 + celda de carga&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;pesa la ración servida&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B21B6;fontColor=#171326;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="160" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="sv" value="Servo MG996R&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;abre la compuerta&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B21B6;fontColor=#171326;" vertex="1" parent="1">
+          <mxGeometry x="240" y="240" width="160" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#5B21B6;endArrow=block;" edge="1" parent="1" source="cam" target="esp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#5B21B6;endArrow=block;" edge="1" parent="1" source="hx" target="esp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#5B21B6;endArrow=block;" edge="1" parent="1" source="esp" target="sv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mq" value="Broker MQTT&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;Mosquitto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#171326;strokeColor=#171326;fontColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="470" y="150" width="160" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="WiFi" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#5B21B6;endArrow=block;fontColor=#6B6580;fontSize=10;" edge="1" parent="1" source="esp" target="mq">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="py" value="Servicio Python&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;Raspberry Pi 4 · visión y raciones&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B21B6;strokeWidth=2;fontColor=#171326;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="720" y="90" width="200" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="sql" value="SQLite&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;historial local&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EEF7;strokeColor=#6B6580;fontColor=#171326;" vertex="1" parent="1">
+          <mxGeometry x="960" y="90" width="110" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="nr" value="Node-RED&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;orquesta los flujos MQTT&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EEF7;strokeColor=#6B6580;fontColor=#171326;" vertex="1" parent="1">
+          <mxGeometry x="720" y="240" width="200" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="dash" value="Dashboard&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;Node-RED UI&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EEF7;strokeColor=#6B6580;fontColor=#171326;" vertex="1" parent="1">
+          <mxGeometry x="960" y="240" width="110" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#5B21B6;endArrow=block;" edge="1" parent="1" source="mq" target="py">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B6580;endArrow=block;" edge="1" parent="1" source="py" target="sql">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B6580;endArrow=block;" edge="1" parent="1" source="py" target="nr">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B6580;endArrow=block;" edge="1" parent="1" source="nr" target="dash">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t2" value="Nube" style="text;html=1;fontSize=13;fontStyle=1;fontColor=#6B6580;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="400" width="360" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="dj" value="Django en Render&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;landing, comercio y app&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#5B21B6;strokeWidth=2;fontColor=#171326;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="450" width="220" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="db2" value="Base de datos&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;cuentas, mascotas, historial&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1EEF7;strokeColor=#6B6580;fontColor=#171326;" vertex="1" parent="1">
+          <mxGeometry x="520" y="450" width="180" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="web" value="Navegador&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;cliente en la nube&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B21B6;fontColor=#171326;" vertex="1" parent="1">
+          <mxGeometry x="40" y="450" width="160" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#5B21B6;endArrow=block;" edge="1" parent="1" source="web" target="dj">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B6580;endArrow=block;" edge="1" parent="1" source="dj" target="db2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="código de vinculación" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#5B21B6;dashed=1;endArrow=block;fontColor=#6B6580;fontSize=10;" edge="1" parent="1" source="py" target="dj">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tun" value="Cloudflare Tunnel&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;expone el servicio de la Raspberry sin abrir puertos&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6B6580;dashed=1;fontColor=#171326;" vertex="1" parent="1">
+          <mxGeometry x="240" y="620" width="460" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B6580;dashed=1;endArrow=block;" edge="1" parent="1" source="tun" target="py">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

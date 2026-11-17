@@ -1,0 +1,57 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="sec01" name="Secuencia de alimentación">
+    <mxGraphModel dx="1100" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="a1" value="Mascota" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B21B6;fontColor=#171326;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="70" width="120" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" value="Cámara" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B21B6;fontColor=#171326;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="190" y="70" width="120" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" value="Servicio" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#5B21B6;strokeWidth=2;fontColor=#171326;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="70" width="120" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" value="Broker" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#171326;strokeColor=#171326;fontColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="550" y="70" width="120" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" value="ESP32-S3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#5B21B6;strokeWidth=2;fontColor=#171326;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="730" y="70" width="120" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="a6" value="App" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B21B6;fontColor=#171326;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="910" y="70" width="120" height="44" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1" style="html=1;dashed=1;strokeColor=#6B6580;endArrow=none;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="90" y="114" as="sourcePoint" /><mxPoint x="90" y="620" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l2" style="html=1;dashed=1;strokeColor=#6B6580;endArrow=none;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="250" y="114" as="sourcePoint" /><mxPoint x="250" y="620" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l3" style="html=1;dashed=1;strokeColor=#6B6580;endArrow=none;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="430" y="114" as="sourcePoint" /><mxPoint x="430" y="620" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l4" style="html=1;dashed=1;strokeColor=#6B6580;endArrow=none;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="610" y="114" as="sourcePoint" /><mxPoint x="610" y="620" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l5" style="html=1;dashed=1;strokeColor=#6B6580;endArrow=none;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="790" y="114" as="sourcePoint" /><mxPoint x="790" y="620" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l6" style="html=1;dashed=1;strokeColor=#6B6580;endArrow=none;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="970" y="114" as="sourcePoint" /><mxPoint x="970" y="620" as="targetPoint" /></mxGeometry></mxCell>
+
+        <mxCell id="m1" value="1 · se acerca al plato" style="html=1;endArrow=block;strokeColor=#5B21B6;fontSize=10;fontColor=#171326;verticalAlign=bottom;labelBackgroundColor=#FBF9FE;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="90" y="160" as="sourcePoint" /><mxPoint x="250" y="160" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m2" value="2 · presencia: { mascota, confianza }" style="html=1;endArrow=block;strokeColor=#5B21B6;fontSize=10;fontColor=#171326;verticalAlign=bottom;labelBackgroundColor=#FBF9FE;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="250" y="205" as="sourcePoint" /><mxPoint x="430" y="205" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m3" value="3 · consulta la ración del día" style="html=1;endArrow=block;strokeColor=#6B6580;fontSize=10;fontColor=#6B6580;verticalAlign=bottom;labelBackgroundColor=#FBF9FE;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="430" y="250" as="sourcePoint" /><mxPoint x="430" y="280" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m4" value="4 · comando/servir { 150 g }" style="html=1;endArrow=block;strokeColor=#5B21B6;fontSize=10;fontColor=#171326;verticalAlign=bottom;labelBackgroundColor=#FBF9FE;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="430" y="320" as="sourcePoint" /><mxPoint x="790" y="320" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m5" value="5 · abre la compuerta" style="html=1;endArrow=block;strokeColor=#5B21B6;fontSize=10;fontColor=#171326;verticalAlign=bottom;labelBackgroundColor=#FBF9FE;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="790" y="365" as="sourcePoint" /><mxPoint x="790" y="395" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m6" value="6 · evento/peso { 148 g, 2 s }" style="html=1;endArrow=block;strokeColor=#5B21B6;fontSize=10;fontColor=#171326;verticalAlign=bottom;labelBackgroundColor=#FBF9FE;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="790" y="440" as="sourcePoint" /><mxPoint x="430" y="440" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m7" value="7 · registra la ración" style="html=1;endArrow=block;strokeColor=#6B6580;fontSize=10;fontColor=#6B6580;verticalAlign=bottom;labelBackgroundColor=#FBF9FE;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="430" y="485" as="sourcePoint" /><mxPoint x="430" y="515" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m8" value="8 · actualiza el panel" style="html=1;endArrow=block;strokeColor=#5B21B6;fontSize=10;fontColor=#171326;verticalAlign=bottom;labelBackgroundColor=#FBF9FE;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry"><mxPoint x="430" y="560" as="sourcePoint" /><mxPoint x="970" y="560" as="targetPoint" /></mxGeometry></mxCell>
+
+        <mxCell id="n1" value="Si la ración pesada no coincide con la pedida, el ESP32 detiene el servo y publica el peso real. La decisión de repetir o avisar queda en el servicio." style="text;html=1;fontSize=11;fontColor=#171326;align=left;whiteSpace=wrap;fillColor=#F1EEF7;strokeColor=#6B6580;rounded=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="640" width="1000" height="44" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

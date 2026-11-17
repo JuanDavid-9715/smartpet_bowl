@@ -1,0 +1,72 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="mqtt01" name="Flujo MQTT">
+    <mxGraphModel dx="1100" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="esp" value="ESP32-S3&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;en el comedero&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#5B21B6;strokeWidth=2;fontColor=#171326;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="mq" value="Broker MQTT&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;Mosquitto en la Raspberry&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#171326;strokeColor=#171326;fontColor=#FFFFFF;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="300" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="sv" value="Servicio Python&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#6B6580&quot;&gt;decide y registra&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#5B21B6;strokeWidth=2;fontColor=#171326;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="860" y="300" width="200" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" value="publica eventos" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#5B21B6;endArrow=block;startArrow=block;fontColor=#6B6580;fontSize=10;verticalAlign=bottom;" edge="1" parent="1" source="esp" target="mq">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="se suscribe" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#5B21B6;endArrow=block;startArrow=block;fontColor=#6B6580;fontSize=10;verticalAlign=bottom;" edge="1" parent="1" source="mq" target="sv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t1" value="Topics que publica el comedero" style="text;html=1;fontSize=12;fontStyle=1;fontColor=#171326;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="460" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k1" value="comedero/{id}/evento/presencia" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B21B6;fontColor=#171326;fontFamily=Courier New;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="92" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="d1" value="{ mascota, confianza }   QoS 0" style="text;html=1;fontSize=10;fontColor=#6B6580;align=left;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="500" y="97" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="k2" value="comedero/{id}/evento/peso" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B21B6;fontColor=#171326;fontFamily=Courier New;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="132" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="d2" value="{ gramos, duracion_s }   QoS 0" style="text;html=1;fontSize=10;fontColor=#6B6580;align=left;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="500" y="137" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="k3" value="comedero/{id}/estado" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5B21B6;fontColor=#171326;fontFamily=Courier New;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="172" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="d3" value="{ en_linea, version }   QoS 1, retenido" style="text;html=1;fontSize=10;fontColor=#6B6580;align=left;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="500" y="177" width="280" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="t2" value="Topics que publica el servicio" style="text;html=1;fontSize=12;fontStyle=1;fontColor=#171326;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="420" width="460" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="k4" value="comedero/{id}/comando/servir" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#5B21B6;fontColor=#171326;fontFamily=Courier New;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="452" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="d4" value="{ gramos, mascota }   QoS 1" style="text;html=1;fontSize=10;fontColor=#6B6580;align=left;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="500" y="457" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="k5" value="comedero/{id}/comando/reiniciar" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#5B21B6;fontColor=#171326;fontFamily=Courier New;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="492" width="440" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="d5" value="{ motivo }   QoS 1" style="text;html=1;fontSize=10;fontColor=#6B6580;align=left;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="500" y="497" width="240" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n1" value="El comedero no decide: obedece y reporta. Toda la lógica de quién come y cuánto vive en el servicio." style="text;html=1;fontSize=11;fontColor=#171326;align=left;whiteSpace=wrap;fillColor=#F1EEF7;strokeColor=#6B6580;rounded=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="570" width="1020" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n2" value="Si el servicio cae, el comedero sigue sirviendo la última ración programada y guarda los eventos en su buffer." style="text;html=1;fontSize=11;fontColor=#171326;align=left;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#6B6580;rounded=1;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="640" width="1020" height="44" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

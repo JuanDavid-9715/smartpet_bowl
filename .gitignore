@@ -41,3 +41,20 @@ fp-info-cache
 *~
 .DS_Store
 Thumbs.db
+
+# ODD y material de trabajo local
+odd/
+
+# Django
+software/web/.venv/
+software/web/db.sqlite3
+software/web/staticfiles/
+software/web/.env
+software/web/media/
+
+# Herramientas
+.playwright-mcp/
+
+# KiCad lock files
+*.lck
+~*.kicad_*
