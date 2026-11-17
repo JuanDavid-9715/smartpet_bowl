@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Crear cuenta — SmartPet Bowl{% endblock %}
+{% block body %}
+<main class="section">
+  <div class="container" style="max-width:520px">
+    <a class="brand" href="{% url 'core:landing' %}">{% include "partials/logo.html" %}<span>SmartPet Bowl</span></a>
+    <h1 style="margin-top:40px;font-size:34px">Crea tu cuenta.</h1>
+    <p class="lead" style="margin-top:12px">Catorce dias de prueba. Sin tarjeta y sin instalar nada.</p>
+    <form method="post" style="margin-top:32px">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<ul class="errorlist">{{ form.non_field_errors }}</ul>{% endif %}
+      {% for field in form %}
+        <div class="field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<span class="helptext">{{ field.help_text|safe }}</span>{% endif %}
+          {% if field.errors %}<ul class="errorlist">{{ field.errors }}</ul>{% endif %}
+        </div>
+      {% endfor %}
+      <button class="btn btn--primary btn--block" style="margin-top:10px" type="submit">Crear cuenta</button>
+    </form>
+    <p class="muted" style="font-size:12px;margin-top:18px">Al crear la cuenta aceptas los terminos y la politica de privacidad.</p>
+    <hr class="rule" style="margin:24px 0">
+    <p class="muted">Ya tienes cuenta? <a href="{% url 'accounts:login' %}" style="color:var(--accent-text);font-weight:600">Ingresar</a></p>
+  </div>
+</main>
+{% endblock %}

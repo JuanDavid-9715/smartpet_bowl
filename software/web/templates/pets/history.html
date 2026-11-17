@@ -1,0 +1,39 @@
+{% extends "pets/base_app.html" %}
+{% block title %}Historial — SmartPet Bowl{% endblock %}
+{% block app %}
+<div class="app-head">
+  <h1>Historial.</h1>
+  <div class="chip-row">
+    <a class="chip {% if period == 'hoy' %}is-active{% endif %}" href="?periodo=hoy">Hoy</a>
+    <a class="chip {% if period == '7' %}is-active{% endif %}" href="?periodo=7">7 dias</a>
+    <a class="chip {% if period == '30' %}is-active{% endif %}" href="?periodo=30">30 dias</a>
+  </div>
+</div>
+<div class="card">
+  <div class="grid grid--3">
+    <div class="kpi"><span class="kpi__label">Total servido</span><span class="price">{{ total|floatformat:"-1" }} g</span></div>
+    <div class="kpi"><span class="kpi__label">Raciones</span><span class="price">{{ count }}</span></div>
+    <div class="kpi"><span class="kpi__label">Promedio comido</span><span class="price">{{ avg|floatformat:"-1" }} g</span></div>
+  </div>
+</div>
+<div class="card" style="margin-top:24px;padding:0">
+  <table class="table">
+    <thead><tr><th>Fecha</th><th>Mascota</th><th>Servido</th><th>Sobrante</th><th>Comido</th><th>Estado</th></tr></thead>
+    <tbody>
+      {% for event in events %}
+        <tr>
+          <td class="mono muted">{{ event.occurred_at|date:"j M H:i" }}</td>
+          <td>{{ event.pet.name }}</td>
+          <td>{{ event.served_grams|floatformat:"-1" }} g</td>
+          <td class="muted">{{ event.leftover_grams|floatformat:"-1" }} g</td>
+          <td>{{ event.eaten_grams|floatformat:"-1" }} g</td>
+          <td class="{% if event.status == 'none' %}is-error{% endif %}"><strong>{{ event.get_status_display }}</strong></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="muted">Sin registros en este periodo.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="muted" style="font-size:13px;margin-top:16px">Se guardan 30 dias en el plan Hogar y sin limite en el plan Multi.</p>
+{% endblock %}

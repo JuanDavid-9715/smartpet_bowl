@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="app-shell">
+  {% include "partials/app_nav.html" %}
+  <main class="app-main">
+    {% if messages %}
+      <ul class="messages">{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% block app %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

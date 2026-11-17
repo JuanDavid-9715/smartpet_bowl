@@ -1,0 +1,47 @@
+<footer class="site-footer">
+  <div class="container">
+    <div class="site-footer__grid">
+      <div>
+        <a class="brand" href="{% url 'core:landing' %}" style="color:#fff">
+          {% include "partials/logo.html" %}
+          <span>SmartPet Bowl</span>
+        </a>
+        <p style="margin-top:16px;color:#a79fc0;font-size:13px;max-width:30ch">
+          Quantum Automata. Alimentacion inteligente para hogares con mas de una mascota.
+        </p>
+        <p style="margin-top:16px">
+          <button class="theme-toggle" type="button" data-theme-toggle style="border-color:#3a3350;color:#a79fc0">
+            <span data-theme-label>Tema</span>
+          </button>
+        </p>
+      </div>
+      <div>
+        <h4>Pagina</h4>
+        <ul>
+          <li><a href="{% url 'core:product' %}">Producto</a></li>
+          <li><a href="{% url 'core:plans' %}">Planes</a></li>
+          <li><a href="{% url 'core:open_source' %}">Codigo abierto</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Cuenta</h4>
+        <ul>
+          <li><a href="{% url 'accounts:register' %}">Crear cuenta</a></li>
+          <li><a href="{% url 'accounts:login' %}">Ingresar</a></li>
+          <li><a href="{% url 'pets:dashboard' %}">Panel</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="{% url 'core:landing' %}">Terminos</a></li>
+          <li><a href="{% url 'core:landing' %}">Privacidad</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="site-footer__bottom">
+      <span>&copy; 2026 Quantum Automata</span>
+      <span>ECCI &middot; Sistemas Digitales III</span>
+    </div>
+  </div>
+</footer>

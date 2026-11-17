@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Ingresar — SmartPet Bowl{% endblock %}
+{% block body %}
+<main class="section">
+  <div class="container" style="max-width:520px">
+    <a class="brand" href="{% url 'core:landing' %}">{% include "partials/logo.html" %}<span>SmartPet Bowl</span></a>
+    <h1 style="margin-top:40px;font-size:34px">Entra a tu cuenta.</h1>
+    <p class="lead" style="margin-top:12px">Tu panel, tus mascotas y el historial de raciones.</p>
+    <form method="post" style="margin-top:32px">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<ul class="errorlist">{{ form.non_field_errors }}</ul>{% endif %}
+      <div class="field"><label for="id_username">Correo o usuario</label>{{ form.username }}</div>
+      <div class="field"><label for="id_password">Contrasena</label>{{ form.password }}</div>
+      <a class="hero__link" style="color:var(--accent-text);font-size:13px" href="{% url 'accounts:register' %}">Olvide mi contrasena</a>
+      <button class="btn btn--primary btn--block" style="margin-top:22px" type="submit">Ingresar</button>
+    </form>
+    <hr class="rule" style="margin:28px 0">
+    <p class="muted">No tienes cuenta? <a href="{% url 'accounts:register' %}" style="color:var(--accent-text);font-weight:600">Crear cuenta</a></p>
+  </div>
+</main>
+{% endblock %}

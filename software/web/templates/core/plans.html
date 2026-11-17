@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load price %}
+{% block title %}Planes — SmartPet Bowl{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container">
+    <h1>Paga el servicio. El equipo se compra una vez.</h1>
+    <p class="lead" style="margin-top:18px">Hogar y Multi corren en la nube y se pagan al mes. Local corre en tu servidor: sin mensualidad, pero el servidor se compra aparte.</p>
+  </div>
+</section>
+
+<section class="section section--soft">
+  <div class="container">
+    <h2>Compara los tres planes.</h2>
+    <div class="table-wrap" style="overflow-x:auto;margin-top:28px">
+      <table class="table" style="min-width:820px">
+        <thead>
+          <tr>
+            <th></th>
+            {% for plan in plans %}
+              <th>
+                <div style="font-family:var(--font-display);font-size:16px;color:var(--ink);letter-spacing:0;text-transform:none">{{ plan.name }}</div>
+                <div class="price" style="font-size:22px;margin-top:4px">{{ plan.price_cop|cop }}</div>
+                <div class="muted" style="font-size:11px">{{ plan.period }}</div>
+              </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Comederos</td><td>1</td><td>Hasta 4</td><td>Sin limite</td></tr>
+          <tr><td>Mascotas</td><td>Hasta 2</td><td>Hasta 4</td><td>Sin limite</td></tr>
+          <tr><td>Historial</td><td>30 dias</td><td>Ilimitado</td><td>En tu servidor</td></tr>
+          <tr><td>Alertas en el celular</td><td>Si</td><td>Si</td><td>Si</td></tr>
+          <tr><td>Soporte prioritario</td><td>No</td><td>Si</td><td>No</td></tr>
+          <tr><td>Registro y cuenta</td><td>Si</td><td>Si</td><td>No</td></tr>
+          <tr><td>Donde viven los datos</td><td>En la nube</td><td>En la nube</td><td>En tu red</td></tr>
+          <tr><td>Equipo que necesitas</td><td>Un comedero</td><td>Hasta 4 comederos</td><td>El servidor</td></tr>
+          <tr>
+            <td></td>
+            {% for plan in plans %}
+              <td><a class="btn btn--sm {% if plan.featured %}btn--primary{% else %}btn--ghost{% endif %}" href="{% url 'accounts:register' %}">Elegir {{ plan.name }}</a></td>
+            {% endfor %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="section section--alt">
+  <div class="container">
+    <h2>Puedes cambiarlo cuando cambie tu casa.</h2>
+    <div class="grid grid--3" style="margin-top:30px">
+      <div><h3>Subir o bajar</h3><p class="muted" style="margin-top:8px">Entre Hogar y Multi el cambio es inmediato. Solo se ajusta el cobro del mes.</p></div>
+      <div><h3>Pasar a Local</h3><p class="muted" style="margin-top:8px">Instalas el servidor y migras tus datos. Desde ese momento no pagas mensualidad.</p></div>
+      <div><h3>Volver a la nube</h3><p class="muted" style="margin-top:8px">Exportas lo que tengas en el servidor y lo subes a tu cuenta cuando quieras.</p></div>
+    </div>
+  </div>
+</section>
+{% endblock %}

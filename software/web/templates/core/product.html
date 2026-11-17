@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load static price %}
+{% block title %}Producto — SmartPet Bowl{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container grid grid--2" style="align-items:center">
+    <div>
+      <span class="eyebrow">Producto</span>
+      <h1 style="margin-top:14px;font-size:clamp(34px,4vw,48px)">Un comedero que sabe quien come.</h1>
+      <p class="lead" style="margin-top:20px">Dos mascotas, dos raciones distintas, un solo aparato. Reconoce a cada una y sirve lo que le toca.</p>
+      <p class="price price--lg" style="margin-top:28px">{{ feeder.price_cop|cop }}</p>
+      <p class="muted" style="font-size:13px">{{ feeder.note }} El servicio se elige aparte.</p>
+      <div style="display:flex;gap:16px;margin-top:26px;flex-wrap:wrap">
+        <a class="btn btn--primary" href="{% url 'core:checkout' %}">Comprar el comedero</a>
+        <a class="btn btn--ghost" href="#servidor">Ver el servidor</a>
+      </div>
+    </div>
+    <img src="{% static 'img/problema-platos.jpg' %}" alt="Comedero en uso" style="border-radius:20px;width:100%;object-fit:cover;aspect-ratio:4/3">
+  </div>
+</section>
+
+<section class="section section--soft">
+  <div class="container">
+    <h2>El comedero y el servidor.</h2>
+    <p class="lead" style="margin-top:14px">El comedero va donde come tu mascota. El servidor va donde tengas el router.</p>
+    <div class="grid grid--2" style="margin-top:36px">
+      <article class="card">
+        <h3>Comedero</h3>
+        <p class="muted" style="margin-top:10px">{{ feeder.summary }}</p>
+        <p class="price" style="margin-top:22px">{{ feeder.price_cop|cop }}</p>
+        <p class="muted" style="font-size:13px">{{ feeder.note }}</p>
+        <a class="btn btn--primary btn--block" style="margin-top:22px" href="{% url 'core:checkout' %}">Comprar el comedero</a>
+      </article>
+      <article class="card card--dark" id="servidor">
+        <h3>Servidor</h3>
+        <p class="muted" style="margin-top:10px">{{ server.summary }}</p>
+        <p class="price" style="margin-top:22px">{{ server.price_cop|cop }}</p>
+        <p class="muted" style="font-size:13px">{{ server.note }}</p>
+        <a class="btn btn--ghost btn--block" style="margin-top:22px;border-color:#c4b5fd;color:#fff" href="{% url 'core:checkout' %}">Comprar el servidor</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section section--alt">
+  <div class="container">
+    <h2>Comprar el par cuesta menos.</h2>
+    <p class="lead" style="margin-top:14px">Cada combo rebaja el total. El plan se elige despues, dentro de la app.</p>
+    <div class="grid grid--3" style="margin-top:34px">
+      {% for bundle in bundles %}
+        <article class="card">
+          <h3>{{ bundle.name }}</h3>
+          <p class="muted" style="margin-top:6px;font-size:14px">{{ bundle.contents }}</p>
+          <p class="price" style="margin-top:18px">{{ bundle.price_cop|cop }}</p>
+          <p class="muted mono" style="font-size:12px">Antes {{ bundle.before_cop|cop }}</p>
+          <a class="btn btn--ghost btn--block" style="margin-top:20px" href="{% url 'core:checkout' %}">Elegir este combo</a>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

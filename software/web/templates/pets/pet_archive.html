@@ -1,0 +1,13 @@
+{% extends "pets/base_app.html" %}
+{% block title %}Archivar {{ pet.name }} — SmartPet Bowl{% endblock %}
+{% block app %}
+<div class="card" style="max-width:560px">
+  <h1 style="font-size:26px">&iquest;Archivar a {{ pet.name }}?</h1>
+  <p class="muted" style="margin-top:14px">Deja de aparecer en el panel y en los avisos. El historial se conserva y puedes recuperarla desde Ajustes.</p>
+  <form method="post" style="display:flex;gap:12px;margin-top:26px">
+    {% csrf_token %}
+    <a class="btn btn--ghost" href="{% url 'pets:detail' pet.pk %}">Cancelar</a>
+    <button class="btn btn--danger" type="submit">Archivar</button>
+  </form>
+</div>
+{% endblock %}

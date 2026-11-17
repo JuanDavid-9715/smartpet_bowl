@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% load static price %}
+{% block title %}SmartPet Bowl — Cada mascota come lo que le toca{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div class="hero__panel">
+    <h1>Cada mascota come lo que le toca.</h1>
+    <p class="hero__lead">Reconoce a quien come, sirve su racion al gramo y te dice si no comio.</p>
+    <div class="hero__actions">
+      <a class="btn btn--primary" href="{% url 'core:product' %}">Quiero el mio</a>
+      <a class="hero__link" href="{% url 'core:plans' %}">Ver los planes</a>
+    </div>
+    <p class="hero__fact">&plusmn; 5 g de precision por porcion</p>
+  </div>
+  <div class="hero__photo">
+    <img src="{% static 'img/hero-gato.jpg' %}" alt="Gato mirando de frente" loading="eager">
+  </div>
+</section>
+
+<section class="section section--soft">
+  <div class="container grid grid--2" style="align-items:start">
+    <div>
+      <h2 style="max-width:14ch">Un plato no distingue quien come.</h2>
+      <p class="lead" style="margin-top:22px">Con mas de una mascota, la comida deja de ser una rutina y se vuelve una carrera.</p>
+      <img src="{% static 'img/problema-platos.jpg' %}" alt="Perro comiendo junto a dos platos" style="margin-top:28px;border-radius:20px;width:100%;object-fit:cover;aspect-ratio:3/2">
+    </div>
+    <div>
+      <div class="row"><div class="row__label">El perro come de mas</div><p class="muted">El que llega primero se lleva las dos raciones.</p></div>
+      <div class="row"><div class="row__label">Nadie sabe cuanto comio</div><p class="muted">Sin registro, la dosis diaria es una suposicion.</p></div>
+      <div class="row"><div class="row__label">La racion es a ojo</div><p class="muted">Una taza no distingue 35 g de 60 g.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section section--alt">
+  <div class="container">
+    <h2>Tres pasos, todos automaticos.</h2>
+    <div class="grid grid--3" style="margin-top:44px">
+      <div>
+        <hr class="rule" style="border-top-width:2px;border-color:var(--accent)">
+        <p class="mono muted" style="margin-top:18px">01</p>
+        <h3 style="margin-top:8px">Reconoce a cada mascota</h3>
+        <p class="muted" style="margin-top:8px">La camara mira el color y la silueta. No hace falta collar, chip ni nada puesto encima.</p>
+      </div>
+      <div>
+        <hr class="rule">
+        <p class="mono muted" style="margin-top:18px">02</p>
+        <h3 style="margin-top:8px">Sirve la racion exacta</h3>
+        <p class="muted" style="margin-top:8px">El dosificador pesa lo que entrega con una celda de carga. Si se pasa, se detiene solo.</p>
+      </div>
+      <div>
+        <hr class="rule">
+        <p class="mono muted" style="margin-top:18px">03</p>
+        <h3 style="margin-top:8px">Te cuenta que paso</h3>
+        <p class="muted" style="margin-top:8px">Cada porcion queda registrada con su hora. Si una mascota no comio, llega un aviso.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section--soft">
+  <div class="container grid grid--2" style="align-items:start">
+    <img src="{% static 'img/crocetas.jpg' %}" alt="Plato con croquetas" style="border-radius:20px;width:100%;object-fit:cover;aspect-ratio:4/3">
+    <div>
+      <h2>Lo que hace por ti.</h2>
+      <p class="lead" style="margin-top:14px">Tres pasos explica como se usa. Esto es lo que hace solo, sin que estes pendiente.</p>
+      <div style="margin-top:26px">
+        <div class="row"><div class="row__label">Reconoce</div><p>Sabe que mascota esta enfrente</p></div>
+        <div class="row"><div class="row__label">Sirve</div><p>La racion exacta de cada una, al gramo</p></div>
+        <div class="row"><div class="row__label">Avisa</div><p>Un aviso si alguna no comio en el dia</p></div>
+        <div class="row"><div class="row__label">Recuerda</div><p>El historial de cada porcion, con su hora</p></div>
+        <div class="row"><div class="row__label">No necesita</div><p>Ni collares, ni chips, ni nada encima</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section--alt">
+  <div class="container">
+    <h2>Que necesitas para empezar.</h2>
+    <p class="lead" style="margin-top:14px">El comedero es obligatorio. El servidor y el plan se anaden despues, solo si los necesitas.</p>
+    <div style="margin-top:34px">
+      <div class="row" style="grid-template-columns:1fr auto">
+        <div>
+          <span class="tag">Obligatorio</span>
+          <h3 style="margin-top:12px">El comedero</h3>
+          <p class="muted">Es el aparato que sirve la comida. Sin esto no hay servicio.</p>
+        </div>
+        <div style="text-align:right">
+          <p class="price">{{ catalog_feeder.price_cop|cop }}</p>
+          <a class="hero__link" style="color:var(--accent-text)" href="{% url 'core:product' %}">Ver el comedero</a>
+        </div>
+      </div>
+      <div class="row" style="grid-template-columns:1fr auto">
+        <div>
+          <span class="tag">Opcional</span>
+          <h3 style="margin-top:12px">El servidor</h3>
+          <p class="muted">Solo si quieres tus datos en casa. Si no, el servicio vive en la nube.</p>
+        </div>
+        <div style="text-align:right">
+          <p class="price">{{ catalog_server.price_cop|cop }}</p>
+          <a class="hero__link" style="color:var(--accent-text)" href="{% url 'core:product' %}">Ver el servidor</a>
+        </div>
+      </div>
+      <div class="row" style="grid-template-columns:1fr auto">
+        <div>
+          <span class="tag">Opcional</span>
+          <h3 style="margin-top:12px">El plan</h3>
+          <p class="muted">Define donde vive el servicio y cuanto historial guardas.</p>
+        </div>
+        <div style="text-align:right">
+          <p class="price">Desde COP 0</p>
+          <a class="hero__link" style="color:var(--accent-text)" href="{% url 'core:plans' %}">Ver los planes</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section--soft">
+  <div class="container">
+    <h2>Elige donde vive el servicio.</h2>
+    <p class="lead" style="margin-top:14px">El comedero se compra una vez. Lo que se paga cada mes es el servicio.</p>
+    <div class="grid grid--3" style="margin-top:34px">
+      {% for plan in plans %}
+        <article class="card {% if plan.featured %}card--feature{% endif %}">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+            <h3>{{ plan.name }}</h3>
+            {% if plan.featured %}<span class="tag">Recomendado</span>{% endif %}
+          </div>
+          <p class="price" style="margin-top:16px">{{ plan.price_cop|cop }}</p>
+          <p class="mono muted">{{ plan.period }}</p>
+          <hr class="rule" style="margin:20px 0">
+          <ul style="list-style:none;padding:0;display:grid;gap:10px;font-size:14px;color:var(--muted)">
+            {% for feature in plan.features %}<li>{{ feature }}</li>{% endfor %}
+          </ul>
+          <a class="btn {% if plan.featured %}btn--primary{% else %}btn--ghost{% endif %} btn--block" style="margin-top:24px" href="{% url 'accounts:register' %}">Elegir {{ plan.name }}</a>
+        </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background:#0b0714;color:#fff">
+  <div class="container grid grid--2" style="align-items:center">
+    <div>
+      <h2 style="color:#fff">Si prefieres ser tu el dueno de los datos.</h2>
+      <p style="color:#c4b5fd;margin-top:18px;max-width:36ch">El servicio corre en tu Raspberry, sin cuota mensual y sin que salga de tu red.</p>
+      <a class="btn btn--ghost" style="margin-top:28px;border-color:#c4b5fd;color:#fff" href="{% url 'core:open_source' %}">Ver el repositorio</a>
+    </div>
+    <div class="mono" style="background:#171326;border-radius:16px;padding:28px;color:#c4b5fd;font-size:12px;line-height:2">
+      <div>firmware/esp32s3/</div>
+      <div>software/raspberry-pi/</div>
+      <div>software/node-red/</div>
+      <div>hardware/kicad/</div>
+      <div>design/drawio/</div>
+    </div>
+  </div>
+</section>
+
+<section style="height:360px;overflow:hidden">
+  <img src="{% static 'img/gato-perro.jpg' %}" alt="Gato y perro juntos" style="width:100%;height:100%;object-fit:cover">
+</section>
+
+<section class="section" style="background:#0b0714;color:#fff;text-align:center">
+  <div class="container">
+    <h2 style="color:#fff">Empieza por una mascota. Anade la segunda cuando quieras.</h2>
+    <p style="color:#a79fc0;margin-top:14px">La primera porcion de cada mascota queda registrada al minuto.</p>
+    <a class="btn btn--primary" style="margin-top:28px" href="{% url 'accounts:register' %}">Crear cuenta</a>
+  </div>
+</section>
+
+{% endblock %}

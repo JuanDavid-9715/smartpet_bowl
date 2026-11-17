@@ -1,0 +1,64 @@
+{% extends "pets/base_app.html" %}
+{% block title %}{{ pet.name }} — SmartPet Bowl{% endblock %}
+{% block app %}
+<p class="muted" style="font-size:13px"><a href="{% url 'pets:list' %}">Mascotas</a> / {{ pet.name }}</p>
+<div class="app-head" style="margin-top:8px">
+  <h1>{{ pet.name }}.</h1>
+</div>
+<div class="grid grid--2" style="align-items:start">
+  <div>
+    {% if pet.photo %}<img src="{{ pet.photo.url }}" alt="{{ pet.name }}" style="border-radius:20px;width:100%;object-fit:cover;aspect-ratio:1">{% else %}<div class="pet-thumb" style="aspect-ratio:1"></div>{% endif %}
+  </div>
+  <div>
+    <div class="grid grid--3">
+      <div class="kpi"><span class="kpi__label">Racion diaria</span><span class="price">{{ pet.target_grams|floatformat:"-1" }} g</span></div>
+      <div class="kpi"><span class="kpi__label">Comido hoy</span><span class="price">{{ served|floatformat:"-1" }} g</span></div>
+      <div class="kpi"><span class="kpi__label">Cumplimiento</span><span class="price">{{ percent }}%</span></div>
+    </div>
+    <p class="muted" style="margin-top:20px">{{ pet.species_label }}{% if pet.breed %} &middot; {{ pet.breed }}{% endif %} &middot; {{ pet.weight_kg }} kg</p>
+    <hr class="rule" style="margin:22px 0">
+    <p class="kpi__label">Comedero asignado</p>
+    <p style="margin-top:6px">{{ pet.feeder|default:"Sin asignar" }} <a class="hero__link" style="color:var(--accent-text);font-size:13px;margin-left:8px" href="{% url 'pets:assign_feeder' pet.pk %}">Cambiar</a></p>
+    <div style="display:flex;gap:12px;margin-top:26px;flex-wrap:wrap">
+      <a class="btn btn--ghost btn--sm" href="{% url 'pets:edit' pet.pk %}">Editar ficha</a>
+      <a class="btn btn--ghost btn--sm" href="{% url 'pets:ration' pet.pk %}">Racion</a>
+      <a class="btn btn--ghost btn--sm" style="color:var(--error);border-color:var(--border)" href="{% url 'pets:archive' pet.pk %}">Archivar</a>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid--2" style="margin-top:36px;align-items:start">
+  <div>
+    <h3>Horarios</h3>
+    <div class="card" style="margin-top:14px;padding:0">
+      <table class="table">
+        <tbody>
+          {% for meal in pet.meal_times.all %}
+            <tr><td class="mono muted">{{ meal.time|time:"H:i" }}</td><td>{{ meal.grams|floatformat:"-1" }} g</td></tr>
+          {% empty %}
+            <tr><td class="muted">Sin horarios definidos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div>
+    <h3>Ultimas raciones</h3>
+    <div class="card" style="margin-top:14px;padding:0">
+      <table class="table">
+        <tbody>
+          {% for event in events %}
+            <tr>
+              <td class="mono muted">{{ event.occurred_at|date:"H:i" }}</td>
+              <td class="{% if event.status == 'none' %}is-error{% endif %}">{{ event.get_status_display }}</td>
+              <td style="text-align:right" class="muted">{{ event.served_grams|floatformat:"-1" }} g</td>
+            </tr>
+          {% empty %}
+            <tr><td class="muted">Sin raciones hoy.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

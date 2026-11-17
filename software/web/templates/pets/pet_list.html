@@ -1,0 +1,30 @@
+{% extends "pets/base_app.html" %}
+{% block title %}Mascotas — SmartPet Bowl{% endblock %}
+{% block app %}
+<div class="app-head">
+  <h1>Mascotas.</h1>
+  <span class="muted">{{ used }} de {{ capacity }} espacios usados</span>
+</div>
+<div class="grid grid--3">
+  {% for pet in pets %}
+    <article class="card" style="padding:0;overflow:hidden">
+      {% if pet.photo %}
+        <img class="pet-thumb" src="{{ pet.photo.url }}" alt="{{ pet.name }}" style="border-radius:0">
+      {% else %}
+        <div class="pet-thumb" style="border-radius:0"></div>
+      {% endif %}
+      <div style="padding:24px">
+        <h3>{{ pet.name }}</h3>
+        <p class="muted" style="font-size:13px">{{ pet.species_label }}{% if pet.breed %} &middot; {{ pet.breed }}{% endif %}{% if pet.age_years %} &middot; {{ pet.age_years }} anos{% endif %}</p>
+        <p style="margin-top:10px;font-size:13px;font-weight:600">{{ pet.target_grams|floatformat:"-1" }} g al dia</p>
+        <a class="hero__link" style="color:var(--accent-text);font-size:13px;display:inline-block;margin-top:14px" href="{% url 'pets:detail' pet.pk %}">Ver ficha</a>
+      </div>
+    </article>
+  {% endfor %}
+  <article class="card" style="display:grid;place-content:center;text-align:center;min-height:280px">
+    <p style="font-size:28px;color:var(--accent-text);font-weight:700">+</p>
+    <h3 style="margin-top:6px"><a href="{% url 'pets:create' %}">Anadir mascota</a></h3>
+    <p class="muted" style="font-size:13px;margin-top:6px">Te quedan {{ capacity|add:"-1" }} espacios en el plan.</p>
+  </article>
+</div>
+{% endblock %}

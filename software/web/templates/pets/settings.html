@@ -1,0 +1,76 @@
+{% extends "pets/base_app.html" %}
+{% block title %}Ajustes y plan — SmartPet Bowl{% endblock %}
+{% block app %}
+<div class="app-head"><h1>Ajustes{% if not is_local %} y plan{% endif %}.</h1></div>
+
+<h3>Tema de la app</h3>
+<div class="card" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap">
+  <div>
+    <p style="font-weight:600">Apariencia</p>
+    <p class="muted" style="font-size:13px">Se guarda en este navegador y respeta la preferencia del sistema mientras no elijas.</p>
+  </div>
+  <div class="segmented">
+    <button type="button" data-set-theme="light">Claro</button>
+    <button type="button" data-set-theme="dark">Oscuro</button>
+  </div>
+</div>
+
+{% if is_local %}
+<h3 style="margin-top:36px">Servicio</h3>
+<div class="card" style="margin-top:14px">
+  <h3 style="font-size:20px">Codigo abierto</h3>
+  <p class="muted" style="margin-top:8px">Sin mensualidad. El servicio corre en este equipo y no hay cobros ni renovaciones.</p>
+  <div class="grid grid--3" style="margin-top:20px">
+    <div class="muted">Sin limite de comederos</div>
+    <div class="muted">Historial ilimitado</div>
+    <div class="muted">Datos solo en tu red</div>
+  </div>
+</div>
+{% else %}
+<h3 style="margin-top:36px">Plan actual</h3>
+<div class="card" style="margin-top:14px">
+  <div style="display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap">
+    <div>
+      <h3 style="font-size:22px">Multi</h3>
+      <p class="muted">COP 35.000 al mes &middot; hasta 4 comederos</p>
+    </div>
+    <span class="tag">Recomendado</span>
+  </div>
+  <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
+    <a class="btn btn--primary btn--sm" href="{% url 'core:plans' %}">Cambiar de plan</a>
+    <a class="btn btn--ghost btn--sm" href="{% url 'core:plans' %}">Cancelar</a>
+  </div>
+</div>
+{% endif %}
+
+<h3 style="margin-top:36px">Comederos</h3>
+<div class="card" style="margin-top:14px;padding:0">
+  <table class="table">
+    <thead><tr><th>Codigo</th><th>Estado</th><th>Ultima sincronizacion</th><th></th></tr></thead>
+    <tbody>
+      {% for feeder in feeders %}
+        <tr>
+          <td class="mono">{{ feeder.code }}</td>
+          <td><span class="status-dot {% if feeder.is_online %}status-dot--on{% else %}status-dot--off{% endif %}"></span> {{ feeder.status_label }}</td>
+          <td class="muted">{{ feeder.last_sync_label }}</td>
+          <td style="text-align:right"><a class="hero__link" style="color:var(--accent-text);font-size:13px" href="{% url 'pets:settings' %}">Reiniciar</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="muted">Sin comederos vinculados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  document.querySelectorAll('[data-set-theme]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var theme = btn.dataset.setTheme;
+      document.documentElement.dataset.theme = theme;
+      try { localStorage.setItem('smartpet-theme', theme); } catch (e) {}
+      document.querySelectorAll('[data-set-theme]').forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+    });
+  });
+</script>
+{% endblock %}

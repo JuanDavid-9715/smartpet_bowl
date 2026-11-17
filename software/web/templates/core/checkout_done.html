@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Pedido registrado — SmartPet Bowl{% endblock %}
+{% block content %}
+<section class="section" style="text-align:center">
+  <div class="container" style="max-width:640px">
+    <hr class="rule" style="border-top-width:4px;border-color:var(--accent);width:48px;margin:0 auto">
+    <h1 style="margin-top:28px">Listo. Tu pedido quedo registrado.</h1>
+    <p class="lead" style="margin:18px auto 0">Te enviamos el resumen al correo. El comedero sale en 48 horas.</p>
+    <p class="mono" style="margin-top:24px">PEDIDO 8842</p>
+    <div style="display:flex;gap:16px;justify-content:center;margin-top:34px;flex-wrap:wrap">
+      <a class="btn btn--primary" href="{% url 'pets:create' %}">Conectar el comedero</a>
+      <a class="btn btn--ghost" href="{% url 'pets:dashboard' %}">Ir al panel</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

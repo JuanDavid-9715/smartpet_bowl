@@ -1,0 +1,65 @@
+{% extends "pets/base_app.html" %}
+{% block title %}Panel — SmartPet Bowl{% endblock %}
+{% block app %}
+<div class="app-head">
+  <h1>Buenos dias, {{ user.first_name|default:user.username }}.</h1>
+  <span class="muted">Hoy, {{ today|date:"j \d\e F" }}</span>
+</div>
+
+<div class="card">
+  <div class="grid grid--2" style="align-items:center">
+    <div>
+      <p class="kpi__label">Servido hoy</p>
+      <p class="kpi__value">{{ served|floatformat:"-1" }} g</p>
+      <p class="muted">de {{ planned|floatformat:"-1" }} g planeados</p>
+      <div class="bar" style="margin-top:14px"><span style="width:{{ percent }}%"></span></div>
+      <p class="mono" style="margin-top:8px;color:var(--accent-text)">{{ percent }}% del dia</p>
+    </div>
+    <div class="grid" style="gap:20px">
+      {% for item in pets %}
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <strong>{{ item.pet.name }}</strong>
+            <span class="muted" style="font-size:13px">{{ item.served|floatformat:"-1" }} de {{ item.target|floatformat:"-1" }} g</span>
+          </div>
+          <div class="bar" style="margin-top:8px"><span style="width:{{ item.percent }}%"></span></div>
+        </div>
+      {% empty %}
+        <p class="muted">Todavia no hay mascotas. <a href="{% url 'pets:create' %}" style="color:var(--accent-text)">Anade la primera</a>.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:36px">Ultimos eventos</h3>
+<div class="card" style="margin-top:14px;padding:0">
+  <table class="table">
+    <tbody>
+      {% for event in events %}
+        <tr>
+          <td class="mono muted" style="width:90px">{{ event.occurred_at|date:"H:i" }}</td>
+          <td>{{ event.pet.name }} {% if event.status == 'ate' %}comio su racion{% elif event.status == 'none' %}no comio{% else %}comio parte{% endif %}</td>
+          <td style="text-align:right" class="{% if event.status == 'none' %}is-error{% else %}muted{% endif %}">{{ event.served_grams|floatformat:"-1" }} g</td>
+        </tr>
+      {% empty %}
+        <tr><td class="muted">Aun no hay raciones registradas hoy.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h3 style="margin-top:36px">Estado del sistema</h3>
+<div class="card" style="margin-top:14px">
+  <div class="grid grid--3">
+    {% for feeder in feeders %}
+      <div>
+        <p class="kpi__label">{{ feeder }}</p>
+        <p><span class="status-dot {% if feeder.is_online %}status-dot--on{% else %}status-dot--off{% endif %}"></span> {{ feeder.status_label }}</p>
+        <p class="muted" style="font-size:13px">{{ feeder.last_sync_label }}</p>
+      </div>
+    {% empty %}
+      <p class="muted">Sin comederos vinculados.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

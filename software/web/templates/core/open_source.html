@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load price %}
+{% block title %}Codigo abierto — SmartPet Bowl{% endblock %}
+{% block content %}
+<section class="section" style="background:#0b0714;color:#fff">
+  <div class="container grid grid--2" style="align-items:center">
+    <div>
+      <h1 style="color:#fff;font-size:clamp(34px,4vw,46px)">El servidor tambien es tuyo.</h1>
+      <p style="color:#c4b5fd;margin-top:20px;max-width:34ch">Si lo compras con nosotros llega configurado: lo conectas y ya sirve. Y si prefieres no comprarlo, el servicio corre en la nube sin que instales nada.</p>
+      <div style="display:flex;gap:18px;margin-top:30px;flex-wrap:wrap">
+        <a class="btn btn--primary" href="{% url 'core:checkout' %}">Comprar el servidor</a>
+        <a class="hero__link" style="align-self:center" href="https://github.com/JuanDavid-9715/smartpet_bowl" target="_blank" rel="noopener">Ver el repositorio</a>
+      </div>
+    </div>
+    <ul style="list-style:none;padding:0;display:grid;gap:18px;font-size:17px">
+      <li>&bull; Sin instalar nada</li>
+      <li>&bull; Sin pagar mensualidad</li>
+      <li>&bull; Sin que tus datos salgan de casa</li>
+    </ul>
+  </div>
+</section>
+
+<section class="section section--alt">
+  <div class="container">
+    <h2>Dos formas de correr el servicio.</h2>
+    <div class="grid grid--2" style="margin-top:32px">
+      <article class="card">
+        <h3>En la nube</h3>
+        <p class="tag" style="margin-top:10px">Recomendado</p>
+        <ul style="list-style:none;padding:0;display:grid;gap:12px;margin-top:18px;color:var(--muted)">
+          <li>&bull; Funciona desde el primer minuto</li>
+          <li>&bull; Entras desde cualquier red</li>
+          <li>&bull; Respaldo y actualizaciones incluidos</li>
+          <li>&bull; Soporte prioritario</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h3>En tu servidor</h3>
+        <p class="tag" style="margin-top:10px">Tu equipo</p>
+        <ul style="list-style:none;padding:0;display:grid;gap:12px;margin-top:18px;color:var(--muted)">
+          <li>&bull; Tus datos no salen de tu red</li>
+          <li>&bull; No pagas mensualidad</li>
+          <li>&bull; Puedes leer y cambiar el codigo</li>
+          <li>&bull; Las actualizaciones las aplicas tu</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section section--soft">
+  <div class="container">
+    <h2>Lo que ganas y lo que pierdes.</h2>
+    <p class="lead" style="margin-top:14px">Las dos opciones son honestas. Se diferencian en cuanto trabajo te dejan a ti.</p>
+    <table class="table" style="margin-top:28px">
+      <thead><tr><th></th><th>Nube</th><th>Tu servidor</th></tr></thead>
+      <tbody>
+        <tr><td>Puesta en marcha</td><td>Conectas y listo</td><td>Instalas y configuras</td></tr>
+        <tr><td>Entrar desde fuera de casa</td><td>Si, desde cualquier red</td><td>Solo en tu red local</td></tr>
+        <tr><td>Respaldo</td><td>Automatico</td><td>Manual, lo haces tu</td></tr>
+        <tr><td>Actualizaciones</td><td>Se instalan solas</td><td>Las aplicas tu</td></tr>
+        <tr><td>Si el equipo se dana</td><td>Sigues funcionando</td><td>El servicio se detiene</td></tr>
+        <tr><td>Costo</td><td>COP 25.000 - 35.000 al mes</td><td>COP 0 al mes, mas el equipo</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section" style="background:#0b0714;color:#fff;text-align:center">
+  <div class="container">
+    <h2 style="color:#fff">Empezar en la nube toma dos minutos.</h2>
+    <a class="btn btn--primary" style="margin-top:26px" href="{% url 'accounts:register' %}">Crear cuenta</a>
+  </div>
+</section>
+{% endblock %}

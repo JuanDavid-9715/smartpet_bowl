@@ -1,0 +1,23 @@
+{% extends "pets/base_app.html" %}
+{% block title %}Alertas — SmartPet Bowl{% endblock %}
+{% block app %}
+<div class="app-head">
+  <h1>Alertas.</h1>
+  <form method="post">{% csrf_token %}<button class="btn btn--ghost btn--sm" type="submit">Marcar todas como leidas</button></form>
+</div>
+<p class="muted" style="margin-bottom:22px">{{ unread }} sin leer</p>
+<div class="grid" style="gap:14px">
+  {% for alert in alerts %}
+    <article class="card" style="display:flex;gap:16px;align-items:flex-start">
+      <span class="status-dot {% if alert.severity == 'alert' %}status-dot--off{% elif alert.severity == 'resolved' %}status-dot--on{% endif %}" style="margin-top:8px"></span>
+      <div style="flex:1">
+        <h3 style="font-size:16px">{{ alert.title }}</h3>
+        <p class="muted" style="font-size:14px;margin-top:4px">{{ alert.detail }}</p>
+      </div>
+      <span class="mono muted" style="font-size:11px">{{ alert.created_at|date:"j M H:i" }}</span>
+    </article>
+  {% empty %}
+    <p class="muted">No hay alertas.</p>
+  {% endfor %}
+</div>
+{% endblock %}

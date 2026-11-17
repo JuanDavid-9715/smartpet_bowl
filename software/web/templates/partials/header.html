@@ -1,0 +1,27 @@
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a class="brand" href="{% url 'core:landing' %}">
+      {% include "partials/logo.html" %}
+      <span>SmartPet Bowl</span>
+    </a>
+    <nav class="site-nav" aria-label="Principal">
+      <a href="{% url 'core:product' %}" {% if request.resolver_match.url_name == 'product' %}aria-current="page"{% endif %}>Producto</a>
+      <a href="{% url 'core:plans' %}" {% if request.resolver_match.url_name == 'plans' %}aria-current="page"{% endif %}>Planes</a>
+      <a href="{% url 'core:open_source' %}" {% if request.resolver_match.url_name == 'open_source' %}aria-current="page"{% endif %}>Codigo abierto</a>
+    </nav>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar tema">
+      <span data-theme-label>Oscuro</span>
+    </button>
+    <div class="header-auth">
+      <div class="auth-pill">
+        {% if user.is_authenticated %}
+          <a href="{% url 'pets:dashboard' %}">Ir al panel</a>
+          <a class="is-solid" href="{% url 'accounts:logout' %}">Salir</a>
+        {% else %}
+          <a href="{% url 'accounts:login' %}">Ingresar</a>
+          <a class="is-solid" href="{% url 'accounts:register' %}">Empezar</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</header>

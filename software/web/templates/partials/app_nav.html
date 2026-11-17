@@ -1,0 +1,19 @@
+<aside class="app-sidebar">
+  <a class="brand" href="{% url 'pets:dashboard' %}">
+    {% include "partials/logo.html" %}<span>SmartPet Bowl</span>
+  </a>
+  <nav class="app-nav" aria-label="Aplicacion">
+    <a href="{% url 'pets:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>Panel</a>
+    <a href="{% url 'pets:list' %}" {% if request.resolver_match.url_name == 'list' or request.resolver_match.url_name == 'detail' %}aria-current="page"{% endif %}>Mascotas</a>
+    <a href="{% url 'pets:history' %}" {% if request.resolver_match.url_name == 'history' %}aria-current="page"{% endif %}>Historial</a>
+    <a href="{% url 'pets:alerts' %}" {% if request.resolver_match.url_name == 'alerts' %}aria-current="page"{% endif %}>Alertas</a>
+    <a href="{% url 'pets:settings' %}" {% if request.resolver_match.url_name == 'settings' %}aria-current="page"{% endif %}>Ajustes y plan</a>
+  </nav>
+  <div class="app-sidebar__footer">
+    <span class="mono" style="letter-spacing:.12em;text-transform:uppercase">{% if is_local %}LOCAL{% else %}PLAN MULTI{% endif %}</span>
+    <span>{% if is_local %}Sin mensualidad{% else %}COP 35.000 al mes{% endif %}</span>
+    <a href="{% if is_local %}{% url 'core:landing' %}{% else %}{% url 'accounts:logout' %}{% endif %}" style="color:var(--muted)">
+      {% if is_local %}Salir{% else %}Cerrar sesion{% endif %}
+    </a>
+  </div>
+</aside>

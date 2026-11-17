@@ -1,0 +1,19 @@
+{% extends "pets/base_app.html" %}
+{% block title %}{% if pet %}Editar ficha{% else %}Nueva mascota{% endif %} — SmartPet Bowl{% endblock %}
+{% block app %}
+<a class="muted hero__link" style="font-size:13px" href="{% if pet %}{% url 'pets:detail' pet.pk %}{% else %}{% url 'pets:list' %}{% endif %}">&larr; Volver</a>
+<h1 style="margin-top:16px;font-size:30px">{% if pet %}Editar ficha{% else %}Nueva mascota.{% endif %}</h1>
+<p class="muted" style="margin-top:10px">Con estos datos calculamos cuanto debe comer al dia.</p>
+<form method="post" enctype="multipart/form-data" style="margin-top:28px;max-width:560px">
+  {% csrf_token %}
+  {% for field in form %}
+    <div class="field">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<span class="helptext">{{ field.help_text|safe }}</span>{% endif %}
+      {% if field.errors %}<ul class="errorlist">{{ field.errors }}</ul>{% endif %}
+    </div>
+  {% endfor %}
+  <button class="btn btn--primary" type="submit">{% if pet %}Guardar cambios{% else %}Continuar{% endif %}</button>
+</form>
+{% endblock %}

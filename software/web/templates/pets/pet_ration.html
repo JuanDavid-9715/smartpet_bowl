@@ -1,0 +1,30 @@
+{% extends "pets/base_app.html" %}
+{% block title %}Racion de {{ pet.name }} — SmartPet Bowl{% endblock %}
+{% block app %}
+<a class="muted hero__link" style="font-size:13px" href="{% url 'pets:detail' pet.pk %}">&larr; Volver</a>
+<h1 style="margin-top:16px;font-size:30px">Cuanto debe comer.</h1>
+<div class="card" style="margin-top:24px;max-width:560px">
+  <p class="mono" style="color:var(--accent-text);font-size:11px;letter-spacing:.12em">SUGERENCIA PARA {{ pet.name|upper }}</p>
+  <p class="price price--lg" style="margin-top:10px">{{ ration.grams_per_day|floatformat:"-1" }} g al dia</p>
+  <p class="muted" style="margin-top:10px">{{ pet.species_label }} &middot; {{ pet.weight_kg }} kg &middot; factor {{ ration.factor }}</p>
+  <p class="muted" style="font-size:13px;margin-top:6px">RER {{ ration.rer_kcal }} kcal &times; factor = {{ ration.mer_kcal }} kcal. Con {{ pet.kcal_per_gram }} kcal/g.</p>
+</div>
+<h3 style="margin-top:32px">Reparto del dia</h3>
+<div class="card" style="margin-top:14px;max-width:560px;padding:0">
+  <table class="table">
+    <tbody>
+      {% for portion in ration.grams_per_meal %}
+        <tr><td class="mono muted">Comida {{ forloop.counter }}</td><td style="text-align:right">{{ portion|floatformat:"-1" }} g</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<form method="post" style="margin-top:24px;max-width:560px">
+  {% csrf_token %}
+  <div class="field">
+    <label for="grams">Ajustar la racion a mano (g)</label>
+    <input id="grams" name="grams" type="number" step="0.1" min="1" value="{{ pet.target_grams|floatformat:'-1' }}">
+  </div>
+  <button class="btn btn--primary" type="submit">Guardar mascota</button>
+</form>
+{% endblock %}
