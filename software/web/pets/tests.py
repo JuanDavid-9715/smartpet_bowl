@@ -176,3 +176,36 @@ def test_restaurar_mascota_archivada(client):
 
     pet.refresh_from_db()
     assert pet.archived is False
+
+
+@pytest.mark.django_db
+def test_subir_fotos_calcula_vector(client, tmp_path, settings):
+    import io
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from django.urls import reverse
+    from PIL import Image
+
+    from pets import embedding
+    from pets.models import PetPhoto
+
+    settings.MEDIA_ROOT = tmp_path
+    User = get_user_model()
+    user = User.objects.create_user(username="f@f.co", email="f@f.co", password="x")
+    pet = Pet.objects.create(owner=user, name="Foto", species="cat", weight_kg=4)
+    client.force_login(user)
+
+    def jpeg(color):
+        buffer = io.BytesIO()
+        Image.new("RGB", (64, 64), color).save(buffer, "JPEG")
+        return SimpleUploadedFile("x.jpg", buffer.getvalue(), content_type="image/jpeg")
+
+    response = client.post(reverse("pets:photos", args=[pet.pk]), {
+        "front": jpeg((200, 120, 40)),
+        "eating": jpeg((190, 110, 50)),
+    })
+
+    assert response.status_code == 302
+    assert PetPhoto.objects.filter(pet=pet).count() == 2
+    pet.refresh_from_db()
+    assert len(pet.centroid) == embedding.DIMENSIONS

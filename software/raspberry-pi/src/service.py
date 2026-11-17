@@ -6,10 +6,10 @@ import logging
 import threading
 import time
 
-from . import config, feeding, storage
+from . import config, descriptor, feeding, storage
 from .client import MqttClient
 from .recognizer import PetRecognizer
-from .vision import FeatureExtractor, FrameSource
+from .vision import FrameSource
 
 log = logging.getLogger(__name__)
 
@@ -20,21 +20,22 @@ PLAN_TTL = 300
 class FeedingService:
     def __init__(self):
         self.source = FrameSource(config.STREAM_URL)
-        self.extractor = FeatureExtractor(config.MODEL_PATH if config.MODEL_PATH.exists() else None)
-        self.recognizer = PetRecognizer(config.PET_PHOTOS_DIR, self.extractor)
+        self.recognizer = PetRecognizer(config.PET_PHOTOS_DIR)
         self.mqtt = MqttClient(self.handle_message)
         self.sessions: dict[str, feeding.Session] = {}
         self.leftover_pending: dict[str, float] = {}
         self._plan: dict = {"pets": []}
         self._plan_at = 0.0
         self._stop = threading.Event()
-        log.info("Extractor: %s · mascotas: %s", self.extractor.backend, ", ".join(self.recognizer.pets) or "ninguna")
+        log.info("Descriptor: histograma HSV de %d dims · mascotas: %s",
+                 descriptor.DIMENSIONS, ", ".join(self.recognizer.pets) or "ninguna")
 
     # --- plan -------------------------------------------------------------
     def plan(self) -> list[dict]:
         if time.time() - self._plan_at > PLAN_TTL:
             self._plan = storage.fetch_plan()
             self._plan_at = time.time()
+            self.recognizer.load_profiles(self._plan.get("pets", []))
             for pet in self._plan.get("pets", []):
                 if pet["name"] not in self.recognizer.pets:
                     log.warning("Sin fotos de referencia para %s", pet["name"])
