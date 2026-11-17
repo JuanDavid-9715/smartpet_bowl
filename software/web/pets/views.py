@@ -202,11 +202,31 @@ def pet_ration(request, pk):
 def pet_archive(request, pk):
     pet = get_object_or_404(_pets(request), pk=pk)
     if request.method == "POST":
+        # Archivar libera el plato: la mascota deja de usarlo y puede ir a otra.
+        liberado = pet.feeder.code if pet.feeder else ""
         pet.archived = True
-        pet.save(update_fields=["archived"])
-        messages.success(request, f"{pet.name} quedo archivada. El historial se conserva.")
+        pet.feeder = None
+        pet.save(update_fields=["archived", "feeder"])
+        extra = f" El plato {liberado} quedo libre." if liberado else ""
+        messages.success(request, f"{pet.name} quedo archivada. El historial se conserva.{extra}")
         return redirect("pets:list")
     return render(request, "pets/pet_archive.html", {"pet": pet})
+
+
+@login_required
+def pet_restore(request, pk):
+    """Devuelve una mascota archivada a la lista, sin plato asignado."""
+    pet = get_object_or_404(Pet.objects.filter(owner=request.user, archived=True), pk=pk)
+    if request.method == "POST":
+        limit = _capacity(request)
+        if limit is not None and _pets(request).count() >= limit:
+            messages.error(request, f"Tu plan permite {limit} mascota(s) activas. Archiva o sube de plan.")
+        else:
+            pet.archived = False
+            pet.save(update_fields=["archived"])
+            messages.success(request, f"{pet.name} volvio a la lista. Asignale un plato para que coma.")
+        return redirect("pets:settings")
+    return redirect("pets:settings")
 
 
 @login_required
@@ -271,6 +291,7 @@ def settings_view(request):
         "pets": _pets(request),
         "limit": limit,
         "can_add_feeder": limit is None or feeders.count() < limit,
+        "archived_pets": Pet.objects.filter(owner=request.user, archived=True),
     })
 
 

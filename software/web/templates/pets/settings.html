@@ -43,6 +43,30 @@
 </div>
 {% endif %}
 
+{% if archived_pets %}
+<h3 style="margin-top:36px">Mascotas archivadas</h3>
+<p class="muted" style="font-size:13px;margin-top:6px">No aparecen en la lista ni en el panel, pero su historial se conserva.</p>
+<div class="card" style="margin-top:14px;padding:0">
+  <table class="table">
+    <thead><tr><th>Mascota</th><th>Especie</th><th></th></tr></thead>
+    <tbody>
+      {% for pet in archived_pets %}
+        <tr>
+          <td style="font-weight:600">{{ pet.name }}</td>
+          <td class="muted">{{ pet.species_label }}</td>
+          <td style="text-align:right">
+            <form method="post" action="{% url 'pets:restore' pet.pk %}" style="display:inline">
+              {% csrf_token %}
+              <button type="submit" style="border:0;background:none;color:var(--accent-text);font-size:13px;font-weight:600;cursor:pointer">Restaurar</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
 <h3 style="margin-top:36px">Platos</h3>
 <p class="muted" style="font-size:13px;margin-top:6px">Cada mascota tiene el suyo. {% if limit %}Tu plan permite {{ limit }}.{% else %}Sin limite.{% endif %}</p>
 <form method="post" action="{% url 'pets:feeder_add' %}" style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;align-items:flex-end">

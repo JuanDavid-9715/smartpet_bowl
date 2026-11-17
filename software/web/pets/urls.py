@@ -16,6 +16,7 @@ urlpatterns = [
     path("comederos/<int:pk>/eliminar/", views.feeder_delete, name="feeder_delete"),
     path("comederos/<int:pk>/ordenar/", views.feeder_command, name="feeder_command"),
     path("mascotas/<int:pk>/archivar/", views.pet_archive, name="archive"),
+    path("mascotas/<int:pk>/restaurar/", views.pet_restore, name="restore"),
     path("mascotas/<int:pk>/plato/quitar/", views.pet_unassign_feeder, name="unassign_feeder"),
     path("historial/", views.history, name="history"),
     path("alertas/", views.alerts, name="alerts"),

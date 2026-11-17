@@ -139,3 +139,40 @@ def test_desvincular_plato_desde_la_ficha(client):
     pet.refresh_from_db()
     assert pet.feeder is None
     assert Feeder.objects.filter(code="SPB-77").exists()
+
+
+@pytest.mark.django_db
+def test_archivar_libera_el_plato(client):
+    from django.urls import reverse
+
+    from pets.models import Feeder
+
+    User = get_user_model()
+    user = User.objects.create_user(username="v@v.co", email="v@v.co", password="x")
+    plato = Feeder.objects.create(owner=user, code="SPB-31")
+    pet = Pet.objects.create(owner=user, name="Onda", species="cat", weight_kg=4, feeder=plato)
+    client.force_login(user)
+
+    client.post(reverse("pets:archive", args=[pet.pk]))
+
+    pet.refresh_from_db()
+    assert pet.archived is True
+    assert pet.feeder is None
+    # El plato sigue existiendo y queda libre para otra mascota.
+    libre = Feeder.objects.get(code="SPB-31")
+    assert not libre.pets.exists()
+
+
+@pytest.mark.django_db
+def test_restaurar_mascota_archivada(client):
+    from django.urls import reverse
+
+    User = get_user_model()
+    user = User.objects.create_user(username="w@w.co", email="w@w.co", password="x")
+    pet = Pet.objects.create(owner=user, name="Nube", species="cat", weight_kg=4, archived=True)
+    client.force_login(user)
+
+    client.post(reverse("pets:restore", args=[pet.pk]))
+
+    pet.refresh_from_db()
+    assert pet.archived is False
