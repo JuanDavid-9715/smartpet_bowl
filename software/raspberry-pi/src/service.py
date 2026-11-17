@@ -139,6 +139,10 @@ class FeedingService:
                         })
                         log.info("Llamada para %s: %.1f g", pet["name"], grams)
                         time.sleep(61)
+            for command in storage.fetch_commands():
+                if command["action"] in ("reconnect", "restart"):
+                    self.mqtt.publish("reiniciar", {"motivo": "pedido desde la web"})
+                    log.info("Orden atendida: %s", command["action"])
             self._stop.wait(20)
 
     def run(self) -> None:

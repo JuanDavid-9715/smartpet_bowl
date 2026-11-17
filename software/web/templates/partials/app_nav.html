@@ -12,8 +12,13 @@
   <div class="app-sidebar__footer">
     <span class="mono" style="letter-spacing:.12em;text-transform:uppercase">{% if is_local %}LOCAL{% else %}PLAN MULTI{% endif %}</span>
     <span>{% if is_local %}Sin mensualidad{% else %}COP 35.000 al mes{% endif %}</span>
-    <a href="{% if is_local %}{% url 'core:landing' %}{% else %}{% url 'accounts:logout' %}{% endif %}" style="color:var(--muted)">
-      {% if is_local %}Salir{% else %}Cerrar sesion{% endif %}
-    </a>
+    {% if is_local %}
+      <a href="{% url 'core:landing' %}" style="color:var(--muted)">Salir</a>
+    {% else %}
+      <form method="post" action="{% url 'accounts:logout' %}" style="margin:0">
+        {% csrf_token %}
+        <button type="submit" style="border:0;background:none;padding:0;color:var(--muted);font:inherit;font-size:12px;cursor:pointer">Cerrar sesion</button>
+      </form>
+    {% endif %}
   </div>
 </aside>

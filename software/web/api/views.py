@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from pets.models import Feeder, Pet
+from pets.models import Feeder, FeederCommand, Pet
 from telemetry.models import Alert, MealEvent
 
 
@@ -113,3 +113,19 @@ def plan(request):
             ],
         })
     return JsonResponse({"feeder": feeder.code, "pets": pets})
+
+
+@csrf_exempt
+def commands(request):
+    """La Raspberry recoge las ordenes pendientes y las marca como enviadas."""
+    if not _authorized(request):
+        return JsonResponse({"error": "token invalido"}, status=401)
+    code = request.GET.get("feeder", "").strip()
+    feeder = Feeder.objects.filter(code=code).first()
+    if feeder is None:
+        return JsonResponse({"error": "comedero desconocido"}, status=404)
+    pending = list(feeder.commands.filter(sent_at__isnull=True))
+    payload = [{"id": cmd.pk, "action": cmd.action} for cmd in pending]
+    if pending:
+        feeder.commands.filter(pk__in=[c.pk for c in pending]).update(sent_at=timezone.now())
+    return JsonResponse({"commands": payload})

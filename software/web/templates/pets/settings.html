@@ -29,12 +29,12 @@
 {% else %}
 <h3 style="margin-top:36px">Plan actual</h3>
 <div class="card" style="margin-top:14px">
-  <div style="display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap">
     <div>
-      <h3 style="font-size:22px">Multi</h3>
-      <p class="muted">COP 35.000 al mes &middot; hasta 4 comederos</p>
+      <h3 style="font-size:22px">{{ user.profile.get_plan_display }}</h3>
+      <p class="muted">{% if user.profile.plan == 'multi' %}COP 35.000 al mes &middot; hasta 4 platos{% elif user.profile.plan == 'hogar' %}COP 25.000 al mes &middot; 1 plato{% else %}Sin mensualidad{% endif %}</p>
     </div>
-    <span class="tag">Recomendado</span>
+    {% if user.profile.plan == 'multi' %}<span class="tag">Recomendado</span>{% endif %}
   </div>
   <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
     <a class="btn btn--primary btn--sm" href="{% url 'core:plans' %}">Cambiar de plan</a>
@@ -43,7 +43,17 @@
 </div>
 {% endif %}
 
-<h3 style="margin-top:36px">Comederos</h3>
+<h3 style="margin-top:36px">Platos</h3>
+<p class="muted" style="font-size:13px;margin-top:6px">Cada mascota tiene el suyo. {% if limit %}Tu plan permite {{ limit }}.{% else %}Sin limite.{% endif %}</p>
+<form method="post" action="{% url 'pets:feeder_add' %}" style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;align-items:flex-end">
+  {% csrf_token %}
+  <div class="field" style="margin:0;min-width:220px">
+    <label for="code">Codigo del plato</label>
+    <input id="code" name="code" required maxlength="12" placeholder="SPB-XX" style="text-transform:uppercase">
+  </div>
+  <button class="btn btn--primary btn--sm" type="submit" {% if not can_add_feeder %}disabled style="opacity:.5"{% endif %}>Vincular plato</button>
+  {% if not can_add_feeder %}<span class="muted" style="font-size:12px">Llegaste al limite de tu plan.</span>{% endif %}
+</form>
 <div class="card" style="margin-top:14px;padding:0">
   <table class="table">
     <thead><tr><th>Plato</th><th>Mascota</th><th>Estado</th><th>Ultima sincronizacion</th><th></th></tr></thead>
@@ -54,10 +64,17 @@
           <td>{% for pet in feeder.pets.all %}{{ pet.name }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">sin mascota</span>{% endfor %}</td>
           <td><span class="status-dot {% if feeder.is_online %}status-dot--on{% else %}status-dot--off{% endif %}"></span> {{ feeder.status_label }}</td>
           <td class="muted">{{ feeder.last_sync_label }}</td>
-          <td style="text-align:right"><a class="hero__link" style="color:var(--error);font-size:13px" href="{% url 'pets:feeder_delete' feeder.pk %}">Desvincular</a></td>
+          <td style="text-align:right;white-space:nowrap">
+            <form method="post" action="{% url 'pets:feeder_command' feeder.pk %}" style="display:inline">
+              {% csrf_token %}
+              <button type="submit" style="border:0;background:none;color:var(--accent-text);font-size:13px;font-weight:600;cursor:pointer">Reconectar</button>
+            </form>
+            <span class="muted" style="margin:0 8px">·</span>
+            <a class="hero__link" style="color:var(--error);font-size:13px" href="{% url 'pets:feeder_delete' feeder.pk %}">Desvincular</a>
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="5" class="muted">Sin platos vinculados. Se crean al anadir una mascota.</td></tr>
+        <tr><td colspan="5" class="muted">Sin platos vinculados todavia.</td></tr>
       {% endfor %}
     </tbody>
   </table>

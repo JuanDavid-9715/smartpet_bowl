@@ -77,3 +77,20 @@ def fetch_plan() -> dict:
     except requests.RequestException as exc:
         log.warning("Sin plan local: %s", exc)
     return {"pets": []}
+
+
+def fetch_commands() -> list[dict]:
+    """Ordenes pendientes: reconectar o reiniciar el comedero."""
+    base = config.LOCAL_API.rsplit("/api/", 1)[0]
+    try:
+        response = requests.get(
+            f"{base}/api/v1/commands/",
+            params={"feeder": config.FEEDER_CODE},
+            headers={"Authorization": f"Bearer {config.INGEST_TOKEN}"},
+            timeout=6,
+        )
+        if response.status_code < 400:
+            return response.json().get("commands", [])
+    except requests.RequestException as exc:
+        log.warning("Sin ordenes: %s", exc)
+    return []

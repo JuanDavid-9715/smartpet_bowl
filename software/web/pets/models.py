@@ -1,5 +1,7 @@
+from django import forms
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 
@@ -81,6 +83,14 @@ class Pet(models.Model):
         verbose_name = "mascota"
         verbose_name_plural = "mascotas"
         ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["feeder"],
+                condition=Q(feeder__isnull=False),
+                name="uniq_pet_per_feeder",
+                violation_error_message="Ese plato ya tiene una mascota asignada.",
+            )
+        ]
 
     def __str__(self) -> str:
         return self.name
@@ -177,3 +187,26 @@ class PetPhoto(models.Model):
 
     def __str__(self) -> str:
         return f"{self.pet.name} · {self.get_pose_display()}"
+
+
+class FeederCommand(models.Model):
+    """Orden pendiente para un comedero. La Raspberry las recoge y las publica."""
+
+    ACTIONS = [("reconnect", "Reconectar"), ("restart", "Reiniciar")]
+
+    feeder = models.ForeignKey(Feeder, on_delete=models.CASCADE, related_name="commands")
+    action = models.CharField(max_length=12, choices=ACTIONS, default="reconnect")
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "orden de comedero"
+        verbose_name_plural = "ordenes de comedero"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.feeder.code} · {self.get_action_display()}"
+
+
+class FeederAddForm(forms.Form):
+    code = forms.CharField(label="Codigo del plato", max_length=12)

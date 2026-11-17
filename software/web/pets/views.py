@@ -11,7 +11,7 @@ from telemetry.models import Alert, MealEvent
 from . import nutrition
 from .forms import PetForm, PetPhotoForm
 from . import embedding
-from .models import Feeder, Pet, PetPhoto
+from .models import Feeder, FeederCommand, Pet, PetPhoto
 
 
 def _pets(request):
@@ -239,11 +239,44 @@ def alerts(request):
 
 @login_required
 def settings_view(request):
+    feeders = Feeder.objects.filter(owner=request.user).prefetch_related("pets")
+    limit = _capacity(request)
     return render(request, "pets/settings.html", {
-        "feeders": Feeder.objects.filter(owner=request.user).prefetch_related("pets"),
+        "feeders": feeders,
         "pets": _pets(request),
-        "limit": _capacity(request),
+        "limit": limit,
+        "can_add_feeder": limit is None or feeders.count() < limit,
     })
+
+
+@login_required
+def feeder_add(request):
+    if request.method != "POST":
+        return redirect("pets:settings")
+    code = (request.POST.get("code") or "").strip().upper()
+    limit = _capacity(request)
+    owned = Feeder.objects.filter(owner=request.user)
+    if not code:
+        messages.error(request, "Escribe el codigo del plato.")
+    elif limit is not None and owned.count() >= limit:
+        messages.error(request, f"Tu plan permite {limit} plato(s).")
+    elif Feeder.objects.filter(code=code).exclude(owner=request.user).exists():
+        messages.error(request, "Ese codigo ya esta vinculado a otra cuenta.")
+    elif owned.filter(code=code).exists():
+        messages.info(request, "Ese plato ya esta en tu cuenta.")
+    else:
+        Feeder.objects.create(owner=request.user, code=code, is_online=False)
+        messages.success(request, f"Plato {code} vinculado. Asignalo a una mascota para que funcione.")
+    return redirect("pets:settings")
+
+
+@login_required
+def feeder_command(request, pk):
+    feeder = get_object_or_404(Feeder.objects.filter(owner=request.user), pk=pk)
+    if request.method == "POST":
+        FeederCommand.objects.create(feeder=feeder, action="reconnect")
+        messages.success(request, f"Pedido de reconexion enviado a {feeder.code}.")
+    return redirect("pets:settings")
 
 
 @login_required
