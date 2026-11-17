@@ -58,3 +58,6 @@ software/web/media/
 # KiCad lock files
 *.lck
 ~*.kicad_*
+
+# Registro de skills local
+.atl/
