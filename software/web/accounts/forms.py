@@ -7,7 +7,6 @@ User = get_user_model()
 
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(label="Correo", required=True)
-    house_name = forms.CharField(label="Nombre de la casa", max_length=120, required=False)
 
     class Meta(UserCreationForm.Meta):
         model = User
@@ -24,8 +23,6 @@ class RegisterForm(UserCreationForm):
         user.email = self.cleaned_data["email"]
         if commit:
             user.save()
-            user.profile.house_name = self.cleaned_data.get("house_name", "")
-            user.profile.save()
         return user
 
 
