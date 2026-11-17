@@ -119,3 +119,23 @@ def test_formulario_no_permite_dos_platos_a_la_vez():
         "feeder": plato.pk, "new_feeder_code": "SPB-56",
     }, user=user)
     assert not form.is_valid()
+
+
+@pytest.mark.django_db
+def test_desvincular_plato_desde_la_ficha(client):
+    from django.urls import reverse
+
+    from pets.models import Feeder
+
+    User = get_user_model()
+    user = User.objects.create_user(username="u@u.co", email="u@u.co", password="x")
+    plato = Feeder.objects.create(owner=user, code="SPB-77", is_online=True)
+    pet = Pet.objects.create(owner=user, name="Luna", species="cat", weight_kg=4, feeder=plato)
+    client.force_login(user)
+
+    response = client.post(reverse("pets:unassign_feeder", args=[pet.pk]))
+
+    assert response.status_code == 302
+    pet.refresh_from_db()
+    assert pet.feeder is None
+    assert Feeder.objects.filter(code="SPB-77").exists()

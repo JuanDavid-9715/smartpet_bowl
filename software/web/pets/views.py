@@ -210,16 +210,16 @@ def pet_archive(request, pk):
 
 
 @login_required
-def assign_feeder(request, pk):
+def pet_unassign_feeder(request, pk):
+    """Quita el plato de la mascota sin borrarlo de la cuenta."""
     pet = get_object_or_404(_pets(request), pk=pk)
-    feeders = Feeder.objects.filter(owner=request.user)
-    if request.method == "POST":
-        feeder_id = request.POST.get("feeder")
-        pet.feeder = feeders.filter(pk=feeder_id).first()
+    if request.method == "POST" and pet.feeder_id:
+        code = pet.feeder.code
+        pet.feeder = None
         pet.save(update_fields=["feeder"])
-        messages.success(request, "Comedero asignado.")
+        messages.success(request, f"{pet.name} quedo sin plato. El plato {code} sigue en tu cuenta, libre.")
         return redirect("pets:detail", pk=pet.pk)
-    return render(request, "pets/pet_feeder.html", {"pet": pet, "feeders": feeders})
+    return redirect("pets:detail", pk=pet.pk)
 
 
 @login_required

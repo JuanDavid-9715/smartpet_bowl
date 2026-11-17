@@ -17,8 +17,24 @@
     </div>
     <p class="muted" style="margin-top:20px">{{ pet.species_label }}{% if pet.breed %} &middot; {{ pet.breed }}{% endif %} &middot; {{ pet.weight_kg }} kg</p>
     <hr class="rule" style="margin:22px 0">
-    <p class="kpi__label">Comedero asignado</p>
-    <p style="margin-top:6px">{{ pet.feeder|default:"Sin asignar" }} <a class="hero__link" style="color:var(--accent-text);font-size:13px;margin-left:8px" href="{% url 'pets:assign_feeder' pet.pk %}">Cambiar</a></p>
+    <p class="kpi__label">Plato asignado</p>
+    {% if pet.feeder %}
+      <p style="margin-top:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span class="mono">{{ pet.feeder.code }}</span>
+        <span class="status-dot {% if pet.feeder.is_online %}status-dot--on{% else %}status-dot--off{% endif %}"></span>
+        <span class="muted" style="font-size:13px">{{ pet.feeder.status_label }} &middot; {{ pet.feeder.last_sync_label }}</span>
+      </p>
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <a class="btn btn--ghost btn--sm" href="{% url 'pets:edit' pet.pk %}">Cambiar plato</a>
+        <form method="post" action="{% url 'pets:unassign_feeder' pet.pk %}" style="margin:0">
+          {% csrf_token %}
+          <button class="btn btn--ghost btn--sm" type="submit" style="color:var(--error)">Desvincular plato</button>
+        </form>
+      </div>
+    {% else %}
+      <p class="muted" style="margin-top:6px">Esta mascota no tiene plato.</p>
+      <a class="btn btn--ghost btn--sm" style="margin-top:12px" href="{% url 'pets:edit' pet.pk %}">Asignar un plato</a>
+    {% endif %}
     <div style="display:flex;gap:12px;margin-top:26px;flex-wrap:wrap">
       <a class="btn btn--ghost btn--sm" href="{% url 'pets:edit' pet.pk %}">Editar ficha</a>
       <a class="btn btn--ghost btn--sm" href="{% url 'pets:ration' pet.pk %}">Racion</a>
