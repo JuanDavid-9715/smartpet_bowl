@@ -53,3 +53,69 @@ def test_pet_suggests_ration_and_schedule():
     assert ration.grams_per_day > 0
     pet.ensure_schedule()
     assert MealTime.objects.filter(pet=pet).count() == 2
+
+
+@pytest.mark.django_db
+def test_crear_mascota_con_plato_de_la_lista(client):
+    from django.urls import reverse
+
+    from pets.models import Feeder
+
+    User = get_user_model()
+    user = User.objects.create_user(username="p@p.co", email="p@p.co", password="x")
+    plato = Feeder.objects.create(owner=user, code="SPB-11")
+    client.force_login(user)
+    response = client.post(reverse("pets:create"), {
+        "name": "Nube", "species": "cat", "weight_kg": "4.5", "kcal_per_gram": "3.6",
+        "profile": "adult_neutered", "meals_per_day": "2", "feeder": plato.pk,
+    })
+    assert response.status_code == 302
+    assert Pet.objects.get(name="Nube").feeder_id == plato.pk
+
+
+@pytest.mark.django_db
+def test_crear_mascota_vinculando_plato_nuevo(client):
+    from django.urls import reverse
+
+    from pets.models import Feeder
+
+    User = get_user_model()
+    user = User.objects.create_user(username="q@q.co", email="q@q.co", password="x")
+    client.force_login(user)
+    response = client.post(reverse("pets:create"), {
+        "name": "Trufa", "species": "dog", "weight_kg": "20", "kcal_per_gram": "3.6",
+        "profile": "adult_neutered", "meals_per_day": "2", "new_feeder_code": "spb-99",
+    })
+    assert response.status_code == 302
+    assert Feeder.objects.filter(code="SPB-99").exists()
+    assert Pet.objects.get(name="Trufa").feeder.code == "SPB-99"
+
+
+@pytest.mark.django_db
+def test_formulario_exige_plato():
+    from pets.forms import PetForm
+
+    User = get_user_model()
+    user = User.objects.create_user(username="r@r.co", email="r@r.co", password="x")
+    form = PetForm(data={
+        "name": "Sin", "species": "cat", "weight_kg": "4", "kcal_per_gram": "3.6",
+        "profile": "adult_neutered", "meals_per_day": "2",
+    }, user=user)
+    assert not form.is_valid()
+    assert "plato" in str(form.errors).lower()
+
+
+@pytest.mark.django_db
+def test_formulario_no_permite_dos_platos_a_la_vez():
+    from pets.forms import PetForm
+    from pets.models import Feeder
+
+    User = get_user_model()
+    user = User.objects.create_user(username="s@s.co", email="s@s.co", password="x")
+    plato = Feeder.objects.create(owner=user, code="SPB-55")
+    form = PetForm(data={
+        "name": "Doble", "species": "cat", "weight_kg": "4", "kcal_per_gram": "3.6",
+        "profile": "adult_neutered", "meals_per_day": "2",
+        "feeder": plato.pk, "new_feeder_code": "SPB-56",
+    }, user=user)
+    assert not form.is_valid()

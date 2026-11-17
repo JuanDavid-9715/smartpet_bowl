@@ -93,27 +93,46 @@ def pet_create(request):
     if limit is not None and used >= limit:
         return render(request, "pets/pet_limit.html", {"limit": limit, "used": used})
 
-    form = PetForm(request.POST or None)
+    form = PetForm(request.POST or None, user=request.user)
     if request.method == "POST" and form.is_valid():
-        code = form.cleaned_data["feeder_code"].strip().upper()
-        feeder = Feeder.objects.filter(code=code).first()
-        if feeder and feeder.owner_id != request.user.id:
-            form.add_error("feeder_code", "Ese codigo ya esta vinculado a otra cuenta.")
-        elif feeder and feeder.pets.exclude(pk=None).exists() and feeder.pets.first().owner_id == request.user.id:
-            form.add_error("feeder_code", "Ese plato ya tiene una mascota asignada.")
+        feeder, error = _resolve_feeder(request, form)
+        if error:
+            form.add_error("new_feeder_code", error)
         else:
             pet = form.save(commit=False)
             pet.owner = request.user
             ration = pet.suggested_ration()
             pet.target_grams = ration.grams_per_day
-            if feeder is None:
-                feeder = Feeder.objects.create(owner=request.user, code=code, is_online=True)
             pet.feeder = feeder
             pet.save()
             pet.ensure_schedule()
             messages.success(request, f"{pet.name} quedo registrada. Falta ensenarle sus fotos.")
             return redirect("pets:photos", pk=pet.pk)
     return render(request, "pets/pet_form.html", {"form": form, "limit": limit, "used": used})
+
+
+def _resolve_feeder(request, form):
+    """Devuelve (plato, error). Crea el plato si se escribio un codigo nuevo."""
+    chosen = form.cleaned_data.get("feeder")
+    code = (form.cleaned_data.get("new_feeder_code") or "").strip().upper()
+    if not code:
+        return chosen, None
+
+    limit = _capacity(request)
+    owned = Feeder.objects.filter(owner=request.user)
+    if limit is not None and owned.filter(pets__isnull=True).count() == 0 and owned.count() >= limit:
+        return None, f"Tu plan permite {limit} plato(s)."
+
+    existing = Feeder.objects.filter(code=code).first()
+    if existing and existing.owner_id != request.user.id:
+        return None, "Ese codigo ya esta vinculado a otra cuenta."
+    if existing and existing.pets.exists():
+        return None, "Ese plato ya tiene una mascota asignada."
+    if existing is None:
+        if limit is not None and owned.count() >= limit:
+            return None, f"Tu plan permite {limit} plato(s)."
+        existing = Feeder.objects.create(owner=request.user, code=code, is_online=False)
+    return existing, None
 
 
 @login_required
@@ -149,13 +168,19 @@ def pet_photos(request, pk):
 @login_required
 def pet_edit(request, pk):
     pet = get_object_or_404(_pets(request), pk=pk)
-    form = PetForm(request.POST or None, instance=pet)
+    form = PetForm(request.POST or None, instance=pet, user=request.user)
     if request.method == "POST" and form.is_valid():
-        pet = form.save(commit=False)
-        pet.target_grams = pet.suggested_ration().grams_per_day
-        pet.save()
-        messages.success(request, "Ficha actualizada.")
-        return redirect("pets:detail", pk=pet.pk)
+        feeder, error = _resolve_feeder(request, form)
+        if error:
+            form.add_error("new_feeder_code", error)
+        else:
+            updated = form.save(commit=False)
+            if feeder is not None:
+                updated.feeder = feeder
+            updated.target_grams = updated.suggested_ration().grams_per_day
+            updated.save()
+            messages.success(request, "Ficha actualizada.")
+            return redirect("pets:detail", pk=pet.pk)
     return render(request, "pets/pet_form.html", {"form": form, "pet": pet})
 
 
