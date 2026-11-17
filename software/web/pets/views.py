@@ -240,7 +240,7 @@ def alerts(request):
 @login_required
 def settings_view(request):
     return render(request, "pets/settings.html", {
-        "feeders": Feeder.objects.filter(owner=request.user).select_related("pets"),
+        "feeders": Feeder.objects.filter(owner=request.user).prefetch_related("pets"),
         "pets": _pets(request),
         "limit": _capacity(request),
     })
