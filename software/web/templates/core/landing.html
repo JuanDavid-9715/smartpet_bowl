@@ -26,9 +26,9 @@
       <img src="{% static 'img/problema-platos.jpg' %}" alt="Perro comiendo junto a dos platos" style="margin-top:28px;border-radius:20px;width:100%;object-fit:cover;aspect-ratio:3/2">
     </div>
     <div>
-      <div class="row"><div class="row__label">El perro come de mas</div><p class="muted">El que llega primero se lleva las dos raciones.</p></div>
-      <div class="row"><div class="row__label">Nadie sabe cuanto comio</div><p class="muted">Sin registro, la dosis diaria es una suposicion.</p></div>
-      <div class="row"><div class="row__label">La racion es a ojo</div><p class="muted">Una taza no distingue 35 g de 60 g.</p></div>
+      <div class="row"><h3 class="row__title">El perro come de mas</h3><p>El que llega primero se lleva las dos raciones.</p></div>
+      <div class="row"><h3 class="row__title">Nadie sabe cuanto comio</h3><p>Sin registro, la dosis diaria es una suposicion.</p></div>
+      <div class="row"><h3 class="row__title">La racion es a ojo</h3><p>Una taza no distingue 35 g de 60 g.</p></div>
     </div>
   </div>
 </section>
@@ -66,11 +66,11 @@
       <h2>Lo que hace por ti.</h2>
       <p class="lead" style="margin-top:14px">Tres pasos explica como se usa. Esto es lo que hace solo, sin que estes pendiente.</p>
       <div style="margin-top:26px">
-        <div class="row"><div class="row__label">Reconoce</div><p>Sabe que mascota esta enfrente</p></div>
-        <div class="row"><div class="row__label">Sirve</div><p>La racion exacta de cada una, al gramo</p></div>
-        <div class="row"><div class="row__label">Avisa</div><p>Un aviso si alguna no comio en el dia</p></div>
-        <div class="row"><div class="row__label">Recuerda</div><p>El historial de cada porcion, con su hora</p></div>
-        <div class="row"><div class="row__label">No necesita</div><p>Ni collares, ni chips, ni nada encima</p></div>
+        <div class="row row--ledger"><div class="row__label">Reconoce</div><p>Sabe que mascota esta enfrente</p></div>
+        <div class="row row--ledger"><div class="row__label">Sirve</div><p>La racion exacta de cada una, al gramo</p></div>
+        <div class="row row--ledger"><div class="row__label">Avisa</div><p>Un aviso si alguna no comio en el dia</p></div>
+        <div class="row row--ledger"><div class="row__label">Recuerda</div><p>El historial de cada porcion, con su hora</p></div>
+        <div class="row row--ledger"><div class="row__label">No necesita</div><p>Ni collares, ni chips, ni nada encima</p></div>
       </div>
     </div>
   </div>
@@ -135,7 +135,7 @@
           <ul style="list-style:none;padding:0;display:grid;gap:10px;font-size:14px;color:var(--muted)">
             {% for feature in plan.features %}<li>{{ feature }}</li>{% endfor %}
           </ul>
-          <a class="btn {% if plan.featured %}btn--primary{% else %}btn--ghost{% endif %} btn--block" style="margin-top:24px" href="{% url 'accounts:register' %}">Elegir {{ plan.name }}</a>
+          <a class="btn {% if plan.featured %}btn--primary{% else %}btn--ghost{% endif %} btn--block" style="margin-top:24px" href="{% url 'core:checkout' %}?item=plan-{{ plan.slug }}">Elegir {{ plan.name }}</a>
         </article>
       {% endfor %}
     </div>
@@ -149,12 +149,15 @@
       <p style="color:#c4b5fd;margin-top:18px;max-width:36ch">El servicio corre en tu Raspberry, sin cuota mensual y sin que salga de tu red.</p>
       <a class="btn btn--ghost" style="margin-top:28px;border-color:#c4b5fd;color:#fff" href="{% url 'core:open_source' %}">Ver el repositorio</a>
     </div>
-    <div class="mono" style="background:#171326;border-radius:16px;padding:28px;color:#c4b5fd;font-size:12px;line-height:2">
-      <div>firmware/esp32s3/</div>
-      <div>software/raspberry-pi/</div>
-      <div>software/node-red/</div>
-      <div>hardware/kicad/</div>
-      <div>design/drawio/</div>
+    <div style="background:#171326;border-radius:16px;padding:28px">
+      <p class="mono" style="color:#a79fc0;font-size:11px;letter-spacing:.14em;text-transform:uppercase">El servicio en tu Raspberry</p>
+      <div class="mono" style="color:#c4b5fd;font-size:12px;line-height:2.1;margin-top:14px">
+        <div>$ clone del repositorio</div>
+        <div>$ pip install -r requirements.txt</div>
+        <div>$ python3 download_model.py</div>
+        <div>$ python3 main.py</div>
+      </div>
+      <p style="color:#a79fc0;font-size:12px;margin-top:16px">Corre en tu red, sin cuota y sin que los datos salgan de casa.</p>
     </div>
   </div>
 </section>

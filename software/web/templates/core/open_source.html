@@ -66,6 +66,35 @@
   </div>
 </section>
 
+<section class="section section--alt">
+  <div class="container">
+    <h2>Como implementarlo en tu Raspberry.</h2>
+    <p class="lead" style="margin-top:14px">El servicio corre en la Raspberry, no la landing. Son cinco pasos y no necesitas abrir puertos.</p>
+    <div class="grid grid--2" style="margin-top:32px;align-items:start">
+      <div class="card">
+        <h3>1. Prepara el equipo</h3>
+        <p class="muted" style="margin-top:8px">Raspberry Pi 4 con Raspberry Pi OS de 64 bits. Instala Python 3 y git.</p>
+        <h3 style="margin-top:24px">2. Trae el codigo</h3>
+        <pre class="mono" style="background:var(--surface-alt);padding:16px;border-radius:12px;overflow-x:auto;font-size:12px">git clone https://github.com/JuanDavid-9715/smartpet_bowl
+cd smartpet_bowl/software/raspberry-pi</pre>
+        <h3 style="margin-top:24px">3. Dependencias y modelo</h3>
+        <pre class="mono" style="background:var(--surface-alt);padding:16px;border-radius:12px;overflow-x:auto;font-size:12px">python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+python3 download_model.py</pre>
+      </div>
+      <div class="card">
+        <h3>4. Configura</h3>
+        <p class="muted" style="margin-top:8px">Copia <span class="mono">.env.example</span> a <span class="mono">.env</span> y ajusta el host del broker, el codigo del comedero y la URL del stream.</p>
+        <h3 style="margin-top:24px">5. Arranca</h3>
+        <pre class="mono" style="background:var(--surface-alt);padding:16px;border-radius:12px;overflow-x:auto;font-size:12px">.venv/bin/python main.py --check
+.venv/bin/python main.py</pre>
+        <p class="muted" style="margin-top:16px;font-size:13px">El modelo se descarga una vez y no vuelve a salir a internet. No se entrena nada y no se llama a ninguna API.</p>
+        <p class="muted" style="margin-top:10px;font-size:13px">Las fotos de referencia de cada mascota se suben desde la app, en la ficha de la mascota.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="section" style="background:#0b0714;color:#fff;text-align:center">
   <div class="container">
     <h2 style="color:#fff">Empezar en la nube toma dos minutos.</h2>

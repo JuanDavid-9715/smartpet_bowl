@@ -1,0 +1,38 @@
+{% extends "pets/base_app.html" %}
+{% block title %}Fotos de {{ pet.name }} — SmartPet Bowl{% endblock %}
+{% block app %}
+<a class="muted hero__link" style="font-size:13px" href="{% url 'pets:list' %}">&larr; Volver</a>
+<h1 style="margin-top:16px;font-size:30px">Fotos de {{ pet.name }}.</h1>
+<p class="lead" style="margin-top:10px">De aqui sale su vector de reconocimiento. Sube las tomas donde la camara del plato la va a ver.</p>
+<form method="post" enctype="multipart/form-data" style="margin-top:28px;max-width:640px">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<ul class="errorlist">{{ form.non_field_errors }}</ul>{% endif %}
+  <div class="grid grid--3" style="gap:16px">
+    {% for field in form %}
+      <div class="card" style="padding:18px">
+        <label for="{{ field.id_for_label }}" style="font-weight:700;font-size:14px">{{ field.label }}</label>
+        <div style="margin-top:10px">{{ field }}</div>
+        <p class="muted" style="font-size:11px;margin-top:8px">
+          {% if field.name == 'front' %}La cara y el hocico, de frente al plato.
+          {% elif field.name == 'eating' %}Con el hocico dentro, como la vera la camara.
+          {% else %}El lomo y el tamano, desde arriba.{% endif %}
+        </p>
+      </div>
+    {% endfor %}
+  </div>
+  <button class="btn btn--primary" style="margin-top:24px" type="submit">Guardar fotos y continuar</button>
+</form>
+{% if photos %}
+  <h3 style="margin-top:36px">Ya guardadas</h3>
+  <div class="grid grid--4" style="margin-top:14px">
+    {% for photo in photos %}
+      <div class="card" style="padding:12px">
+        <img src="{{ photo.image.url }}" alt="{{ photo.get_pose_display }}" style="border-radius:10px;width:100%;aspect-ratio:4/3;object-fit:cover">
+        <p class="muted" style="font-size:12px;margin-top:8px">{{ photo.get_pose_display }}</p>
+        <p class="mono muted" style="font-size:10px">vector {{ photo.embedding|length }} dim</p>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+<p class="muted" style="font-size:12px;margin-top:24px">El vector se guarda con la mascota. Si mas adelante cambiamos a un modelo que aprenda, solo se recalcula: la ficha y el flujo no cambian.</p>
+{% endblock %}

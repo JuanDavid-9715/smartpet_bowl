@@ -1,0 +1,12 @@
+{% extends "pets/base_app.html" %}
+{% block title %}Limite del plan — SmartPet Bowl{% endblock %}
+{% block app %}
+<div class="card" style="max-width:560px">
+  <h1 style="font-size:26px">Tu plan permite {{ limit }} plato{{ limit|pluralize }}.</h1>
+  <p class="muted" style="margin-top:14px">Ya tienes {{ used }} mascota{{ used|pluralize }} registrada{{ used|pluralize }} con su plato. Para anadir otra, sube de plan o archiva una mascota.</p>
+  <div style="display:flex;gap:12px;margin-top:26px">
+    <a class="btn btn--ghost" href="{% url 'pets:list' %}">Volver</a>
+    <a class="btn btn--primary" href="{% url 'core:plans' %}">Ver planes</a>
+  </div>
+</div>
+{% endblock %}

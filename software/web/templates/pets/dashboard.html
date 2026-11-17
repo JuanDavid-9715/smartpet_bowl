@@ -48,18 +48,26 @@
   </table>
 </div>
 
-<h3 style="margin-top:36px">Estado del sistema</h3>
-<div class="card" style="margin-top:14px">
-  <div class="grid grid--3">
-    {% for feeder in feeders %}
-      <div>
-        <p class="kpi__label">{{ feeder }}</p>
-        <p><span class="status-dot {% if feeder.is_online %}status-dot--on{% else %}status-dot--off{% endif %}"></span> {{ feeder.status_label }}</p>
-        <p class="muted" style="font-size:13px">{{ feeder.last_sync_label }}</p>
-      </div>
-    {% empty %}
-      <p class="muted">Sin comederos vinculados.</p>
-    {% endfor %}
-  </div>
+<h3 style="margin-top:36px">Estado de los platos</h3>
+<div class="card" style="margin-top:14px;padding:0">
+  <table class="table">
+    <thead><tr><th>Mascota</th><th>Plato</th><th>Estado</th><th>Ultima sincronizacion</th></tr></thead>
+    <tbody>
+      {% for item in pets %}
+        <tr>
+          <td style="font-weight:600">{{ item.pet.name }}</td>
+          <td class="mono">{{ item.pet.feeder.code|default:"Sin plato" }}</td>
+          <td>
+            {% if item.pet.feeder %}
+              <span class="status-dot {% if item.pet.feeder.is_online %}status-dot--on{% else %}status-dot--off{% endif %}"></span> {{ item.pet.feeder.status_label }}
+            {% else %}<span class="muted">—</span>{% endif %}
+          </td>
+          <td class="muted">{{ item.pet.feeder.last_sync_label|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="muted">Todavia no hay mascotas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 {% endblock %}

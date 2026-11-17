@@ -1,9 +1,12 @@
-"""En modo local no se pide correo ni contrasena: se entra con el perfil de la casa."""
+"""El perfil local existe solo en la Raspberry y solo para la app.
+
+La web publica nunca autentica a nadie: ahi se entra con correo y contrasena.
+"""
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import AnonymousUser
 
 _cached_user = None
+LOCAL_PREFIXES = ("/app/",)
 
 
 def get_local_owner():
@@ -20,10 +23,12 @@ class LocalAutoLoginMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if settings.IS_LOCAL and not request.user.is_authenticated:
+        if (
+            settings.IS_LOCAL
+            and not request.user.is_authenticated
+            and request.path.startswith(LOCAL_PREFIXES)
+        ):
             owner = get_local_owner()
             if owner is not None:
                 request.user = owner
-            elif request.user is None:
-                request.user = AnonymousUser()
         return self.get_response(request)

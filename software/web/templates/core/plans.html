@@ -38,7 +38,7 @@
           <tr>
             <td></td>
             {% for plan in plans %}
-              <td><a class="btn btn--sm {% if plan.featured %}btn--primary{% else %}btn--ghost{% endif %}" href="{% url 'accounts:register' %}">Elegir {{ plan.name }}</a></td>
+              <td><a class="btn btn--sm {% if plan.featured %}btn--primary{% else %}btn--ghost{% endif %}" href="{% url 'core:checkout' %}?item=plan-{{ plan.slug }}">Elegir {{ plan.name }}</a></td>
             {% endfor %}
           </tr>
         </tbody>

@@ -105,6 +105,8 @@ def plan(request):
             "name": pet.name,
             "species": pet.species,
             "target_grams": float(pet.target_grams or 0),
+            "feeder": pet.feeder.code if pet.feeder else "",
+            "centroid": pet.centroid or [],
             "meals": [
                 {"time": meal.time.strftime("%H:%M"), "grams": float(meal.grams)}
                 for meal in pet.meal_times.all()

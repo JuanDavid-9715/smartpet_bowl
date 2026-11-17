@@ -1,0 +1,13 @@
+{% extends "pets/base_app.html" %}
+{% block title %}Desvincular plato — SmartPet Bowl{% endblock %}
+{% block app %}
+<div class="card" style="max-width:560px">
+  <h1 style="font-size:26px">&iquest;Desvincular el plato {{ feeder.code }}?</h1>
+  <p class="muted" style="margin-top:14px">La mascota que lo usa deja de tener plato hasta que registres otro. El historial se conserva.</p>
+  <form method="post" style="display:flex;gap:12px;margin-top:26px">
+    {% csrf_token %}
+    <a class="btn btn--ghost" href="{% url 'pets:settings' %}">Cancelar</a>
+    <button class="btn btn--danger" type="submit">Desvincular</button>
+  </form>
+</div>
+{% endblock %}

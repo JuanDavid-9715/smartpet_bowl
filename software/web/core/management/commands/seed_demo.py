@@ -39,24 +39,23 @@ class Command(BaseCommand):
         profile, _ = Profile.objects.get_or_create(user=user)
         profile.house_name = "Casa de los Medellin"
         profile.is_local_owner = True
+        profile.plan = "multi"
         profile.save()
 
-        feeder_cocina, _ = Feeder.objects.get_or_create(
-            code="SPB-42", defaults={"owner": user, "name": "Cocina", "is_online": True}
+        # Un plato por mascota. No hay platos sueltos ni "lugares".
+        feeder_jiru, _ = Feeder.objects.update_or_create(
+            code="SPB-42", defaults={"owner": user, "name": "Jiru", "is_online": True,
+                                     "last_sync": timezone.now() - timedelta(minutes=2)}
         )
-        feeder_patio, _ = Feeder.objects.get_or_create(
-            code="SPB-07", defaults={"owner": user, "name": "Patio", "is_online": True}
+        feeder_armi, _ = Feeder.objects.update_or_create(
+            code="SPB-07", defaults={"owner": user, "name": "Armi", "is_online": True,
+                                     "last_sync": timezone.now() - timedelta(minutes=6)}
         )
-        Feeder.objects.get_or_create(
-            code="SPB-19", defaults={"owner": user, "name": "Habitacion", "is_online": False}
-        )
-        for feeder in (feeder_cocina, feeder_patio):
-            feeder.owner = user
-            feeder.last_sync = timezone.now() - timedelta(minutes=2)
-            feeder.save()
+        Feeder.objects.filter(owner=user, code="SPB-19").delete()
 
         hoy = timezone.localdate()
-        jiru, _ = Pet.objects.get_or_create(
+        # El seed es autoritativo para las dos mascotas demo.
+        jiru, _ = Pet.objects.update_or_create(
             owner=user, name="Jiru",
             defaults={
                 "species": "cat",
@@ -66,10 +65,11 @@ class Command(BaseCommand):
                 "kcal_per_gram": 3.6,
                 "profile": "adult_neutered",
                 "meals_per_day": 2,
-                "feeder": feeder_cocina,
+                "feeder": feeder_jiru,
+                "archived": False,
             },
         )
-        armi, _ = Pet.objects.get_or_create(
+        armi, _ = Pet.objects.update_or_create(
             owner=user, name="Armi",
             defaults={
                 "species": "dog",
@@ -79,7 +79,8 @@ class Command(BaseCommand):
                 "kcal_per_gram": 3.6,
                 "profile": "adult_neutered",
                 "meals_per_day": 2,
-                "feeder": feeder_patio,
+                "feeder": feeder_armi,
+                "archived": False,
             },
         )
         for pet in (jiru, armi):
@@ -118,13 +119,13 @@ class Command(BaseCommand):
 
         if not Alert.objects.filter(pet=jiru).exists():
             Alert.objects.create(
-                pet=jiru, feeder=feeder_cocina, severity="alert",
+                pet=jiru, feeder=feeder_jiru, severity="alert",
                 title="Jiru dejo el 30% de su racion",
                 detail="Sobrante alto en la ultima comida. Conviene revisar el plato.",
             )
             Alert.objects.create(
-                feeder=feeder_patio, severity="resolved",
-                title="El comedero SPB-07 se reconecto",
+                feeder=feeder_armi, severity="resolved",
+                title="El plato de Armi se reconecto",
                 detail="Estuvo fuera de linea 4 minutos y volvio solo.",
             )
 

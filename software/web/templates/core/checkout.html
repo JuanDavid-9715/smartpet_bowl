@@ -4,28 +4,38 @@
 {% block content %}
 <section class="section">
   <div class="container">
-    <h1>Finalizar compra.</h1>
+    <p class="muted" style="font-size:13px"><a href="{% url 'core:product' %}">Producto</a> / Finalizar compra</p>
+    <h1 style="margin-top:10px">Finalizar compra.</h1>
     <div class="grid grid--2" style="margin-top:36px;align-items:start">
       <div>
         <h3>Tu pedido</h3>
-        {% for bundle in bundles|slice:":1" %}
-        <div style="margin-top:18px">
-          <div class="row" style="grid-template-columns:1fr auto;padding-top:0"><span>Comedero SmartPet Bowl</span><span>{{ catalog_feeder.price_cop|cop }}</span></div>
-          <div class="row" style="grid-template-columns:1fr auto"><span>Servidor local</span><span>{{ catalog_server.price_cop|cop }}</span></div>
-          <div class="row" style="grid-template-columns:1fr auto"><span>Descuento combo</span><span>- {{ bundle.before_cop|add:"0"|cop }}</span></div>
+        <div style="margin-top:14px">
+          {% for label, amount in item.lines %}
+            <div class="row" style="grid-template-columns:1fr auto;padding-top:0"><span>{{ label }}</span><span>{{ amount|cop }}</span></div>
+          {% endfor %}
+          {% if discount %}
+            <div class="row" style="grid-template-columns:1fr auto"><span>Descuento combo</span><span>- {{ discount|cop }}</span></div>
+          {% endif %}
         </div>
-        {% endfor %}
-        <div style="display:flex;justify-content:space-between;margin-top:24px;font-family:var(--font-display);font-size:22px;font-weight:700">
-          <span>Total</span><span>{{ bundles.0.price_cop|cop }}</span>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:24px">
+          <span style="font-family:var(--font-display);font-size:20px;font-weight:700">Total</span>
+          <span style="font-family:var(--font-display);font-size:26px;font-weight:700">{{ item.price_cop|cop }}</span>
         </div>
+        <p class="muted" style="font-size:13px">{{ item.period }}{% if item.is_subscription %} · se renueva cada mes{% endif %}</p>
+        <p class="muted" style="margin-top:18px;font-size:14px">{{ item.summary }}</p>
+
+        {% if not item.is_subscription %}
         <h3 style="margin-top:36px">Enviar a</h3>
         <div class="card" style="margin-top:14px">
           <p style="font-weight:600">{{ user.get_full_name|default:user.username }}</p>
           <p class="muted" style="font-size:14px">Direccion de entrega pendiente. Se confirma por correo.</p>
         </div>
+        {% endif %}
       </div>
+
       <form class="card" method="post" action="{% url 'core:checkout_done' %}">
         {% csrf_token %}
+        <input type="hidden" name="item" value="{{ item.slug }}">
         <h3>Datos de pago</h3>
         <div class="field" style="margin-top:18px"><label>Nombre en la tarjeta</label><input type="text" placeholder="Como aparece en la tarjeta"></div>
         <div class="field"><label>Numero de la tarjeta</label><input type="text" inputmode="numeric" placeholder="0000 0000 0000 0000"></div>
@@ -33,7 +43,7 @@
           <div class="field"><label>Vencimiento</label><input type="text" placeholder="MM/AA"></div>
           <div class="field"><label>CVC</label><input type="text" placeholder="123"></div>
         </div>
-        <button class="btn btn--primary btn--block" type="submit">Pagar {{ bundles.0.price_cop|cop }}</button>
+        <button class="btn btn--primary btn--block" type="submit">{{ item.cta }} {{ item.price_cop|cop }}</button>
         <p class="muted" style="font-size:12px;margin-top:14px">El cobro es simulado. Es una demo academica.</p>
       </form>
     </div>

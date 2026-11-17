@@ -3,7 +3,7 @@
 {% block app %}
 <div class="app-head">
   <h1>Mascotas.</h1>
-  <span class="muted">{{ used }} de {{ capacity }} espacios usados</span>
+  <span class="muted">{% if limit %}{{ used }} de {{ limit }} espacios usados{% else %}{{ used }} mascota{{ used|pluralize }} · sin limite{% endif %}</span>
 </div>
 <div class="grid grid--3">
   {% for pet in pets %}
@@ -21,10 +21,19 @@
       </div>
     </article>
   {% endfor %}
-  <article class="card" style="display:grid;place-content:center;text-align:center;min-height:280px">
-    <p style="font-size:28px;color:var(--accent-text);font-weight:700">+</p>
-    <h3 style="margin-top:6px"><a href="{% url 'pets:create' %}">Anadir mascota</a></h3>
-    <p class="muted" style="font-size:13px;margin-top:6px">Te quedan {{ capacity|add:"-1" }} espacios en el plan.</p>
-  </article>
+  {% if can_add %}
+    <a class="card" href="{% url 'pets:create' %}" style="display:grid;place-content:center;text-align:center;min-height:280px;text-align:center">
+      <span style="font-size:28px;color:var(--accent-text);font-weight:700;display:block">+</span>
+      <span style="font-family:var(--font-display);font-weight:700;font-size:18px;display:block;margin-top:6px">Anadir mascota</span>
+      <span class="muted" style="font-size:13px;display:block;margin-top:6px">
+        {% if limit %}Te quedan {{ limit|add:"-1" }} espacios en el plan.{% else %}Cada mascota trae su plato.{% endif %}
+      </span>
+    </a>
+  {% else %}
+    <div class="card" style="display:grid;place-content:center;text-align:center;min-height:280px">
+      <span class="muted" style="font-size:13px">Tu plan permite {{ limit }} plato{{ limit|pluralize }} y ya los usaste.</span>
+      <a class="hero__link" style="color:var(--accent-text);font-size:13px;margin-top:10px" href="{% url 'core:plans' %}">Ver planes</a>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}

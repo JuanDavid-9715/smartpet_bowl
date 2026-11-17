@@ -9,8 +9,9 @@ from django.utils import timezone
 from telemetry.models import Alert, MealEvent
 
 from . import nutrition
-from .forms import PetForm
-from .models import Feeder, Pet
+from .forms import PetForm, PetPhotoForm
+from . import embedding
+from .models import Feeder, Pet, PetPhoto
 
 
 def _pets(request):
@@ -54,11 +55,12 @@ def dashboard(request):
 @login_required
 def pet_list(request):
     pets = list(_pets(request))
-    capacity = 4 if request.user.pets.count() > 1 else 1
+    limit = _capacity(request)
     return render(request, "pets/pet_list.html", {
         "pets": pets,
-        "capacity": capacity,
+        "limit": limit,
         "used": len(pets),
+        "can_add": limit is None or len(pets) < limit,
     })
 
 
@@ -79,19 +81,69 @@ def pet_detail(request, pk):
     })
 
 
+def _capacity(request):
+    """Cuantas mascotas permite el plan. None = sin limite."""
+    return getattr(request.user.profile, "max_plates", None)
+
+
 @login_required
 def pet_create(request):
+    limit = _capacity(request)
+    used = _pets(request).count()
+    if limit is not None and used >= limit:
+        return render(request, "pets/pet_limit.html", {"limit": limit, "used": used})
+
     form = PetForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        pet = form.save(commit=False)
-        pet.owner = request.user
-        ration = pet.suggested_ration()
-        pet.target_grams = ration.grams_per_day
-        pet.save()
-        pet.ensure_schedule()
-        messages.success(request, f"{pet.name} quedo registrada con {ration.grams_per_day} g al dia.")
-        return redirect("pets:ration", pk=pet.pk)
-    return render(request, "pets/pet_form.html", {"form": form})
+        code = form.cleaned_data["feeder_code"].strip().upper()
+        feeder = Feeder.objects.filter(code=code).first()
+        if feeder and feeder.owner_id != request.user.id:
+            form.add_error("feeder_code", "Ese codigo ya esta vinculado a otra cuenta.")
+        elif feeder and feeder.pets.exclude(pk=None).exists() and feeder.pets.first().owner_id == request.user.id:
+            form.add_error("feeder_code", "Ese plato ya tiene una mascota asignada.")
+        else:
+            pet = form.save(commit=False)
+            pet.owner = request.user
+            ration = pet.suggested_ration()
+            pet.target_grams = ration.grams_per_day
+            if feeder is None:
+                feeder = Feeder.objects.create(owner=request.user, code=code, is_online=True)
+            pet.feeder = feeder
+            pet.save()
+            pet.ensure_schedule()
+            messages.success(request, f"{pet.name} quedo registrada. Falta ensenarle sus fotos.")
+            return redirect("pets:photos", pk=pet.pk)
+    return render(request, "pets/pet_form.html", {"form": form, "limit": limit, "used": used})
+
+
+@login_required
+def pet_photos(request, pk):
+    """Fotos de referencia: de aqui sale el vector con el que la IA la reconoce."""
+    pet = get_object_or_404(_pets(request), pk=pk)
+    form = PetPhotoForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        uploaded = [
+            ("front", form.cleaned_data.get("front")),
+            ("eating", form.cleaned_data.get("eating")),
+            ("top", form.cleaned_data.get("top")),
+        ]
+        added = 0
+        for pose, image in uploaded:
+            if not image:
+                continue
+            data = image.read()
+            vector = embedding.describe_bytes(data)
+            image.seek(0)
+            PetPhoto.objects.create(pet=pet, image=image, pose=pose, embedding=vector)
+            added += 1
+        if added:
+            vectors = [photo.embedding for photo in pet.photos.all()]
+            pet.centroid = embedding.centroid(vectors)
+            pet.save(update_fields=["centroid"])
+            messages.success(request, f"{added} fotos guardadas. {pet.name} ya se puede reconocer.")
+            return redirect("pets:ration", pk=pet.pk)
+        form.add_error(None, "Sube al menos una foto.")
+    return render(request, "pets/pet_photos.html", {"pet": pet, "form": form, "photos": pet.photos.all()})
 
 
 @login_required
@@ -188,6 +240,20 @@ def alerts(request):
 @login_required
 def settings_view(request):
     return render(request, "pets/settings.html", {
-        "feeders": Feeder.objects.filter(owner=request.user),
+        "feeders": Feeder.objects.filter(owner=request.user).select_related("pets"),
         "pets": _pets(request),
+        "limit": _capacity(request),
     })
+
+
+@login_required
+def feeder_delete(request, pk):
+    feeder = get_object_or_404(Feeder.objects.filter(owner=request.user), pk=pk)
+    if request.method == "POST":
+        for pet in feeder.pets.all():
+            pet.feeder = None
+            pet.save(update_fields=["feeder"])
+        feeder.delete()
+        messages.success(request, "Plato desvinculado.")
+        return redirect("pets:settings")
+    return render(request, "pets/feeder_delete.html", {"feeder": feeder})

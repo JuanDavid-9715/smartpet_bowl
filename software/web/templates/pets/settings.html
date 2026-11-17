@@ -46,17 +46,18 @@
 <h3 style="margin-top:36px">Comederos</h3>
 <div class="card" style="margin-top:14px;padding:0">
   <table class="table">
-    <thead><tr><th>Codigo</th><th>Estado</th><th>Ultima sincronizacion</th><th></th></tr></thead>
+    <thead><tr><th>Plato</th><th>Mascota</th><th>Estado</th><th>Ultima sincronizacion</th><th></th></tr></thead>
     <tbody>
       {% for feeder in feeders %}
         <tr>
           <td class="mono">{{ feeder.code }}</td>
+          <td>{% for pet in feeder.pets.all %}{{ pet.name }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">sin mascota</span>{% endfor %}</td>
           <td><span class="status-dot {% if feeder.is_online %}status-dot--on{% else %}status-dot--off{% endif %}"></span> {{ feeder.status_label }}</td>
           <td class="muted">{{ feeder.last_sync_label }}</td>
-          <td style="text-align:right"><a class="hero__link" style="color:var(--accent-text);font-size:13px" href="{% url 'pets:settings' %}">Reiniciar</a></td>
+          <td style="text-align:right"><a class="hero__link" style="color:var(--error);font-size:13px" href="{% url 'pets:feeder_delete' feeder.pk %}">Desvincular</a></td>
         </tr>
       {% empty %}
-        <tr><td colspan="4" class="muted">Sin comederos vinculados.</td></tr>
+        <tr><td colspan="5" class="muted">Sin platos vinculados. Se crean al anadir una mascota.</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -33,8 +33,11 @@ def open_source(request):
 
 
 def checkout(request):
-    return render(request, "core/checkout.html", {"bundles": catalog.BUNDLES, "cop": catalog.cop})
+    item = catalog.resolve_item(request.GET.get("item"))
+    discount = (item.before_cop - item.price_cop) if item.before_cop else 0
+    return render(request, "core/checkout.html", {"item": item, "discount": discount, "cop": catalog.cop})
 
 
 def checkout_done(request):
-    return render(request, "core/checkout_done.html")
+    item = catalog.resolve_item(request.POST.get("item") or request.GET.get("item"))
+    return render(request, "core/checkout_done.html", {"item": item})

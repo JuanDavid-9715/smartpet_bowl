@@ -70,6 +70,10 @@ class Pet(models.Model):
     )
     photo = models.ImageField("foto", upload_to="pets/", blank=True)
     archived = models.BooleanField("archivada", default=False)
+    centroid = models.JSONField(
+        "vector de reconocimiento", default=list, blank=True,
+        help_text="Promedio de los vectores de sus fotos. La Raspberry compara contra esto.",
+    )
     target_grams = models.DecimalField("racion diaria (g)", max_digits=6, decimal_places=1, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -149,3 +153,27 @@ class MealPlanItem(models.Model):
     @property
     def effective_grams(self):
         return self.chosen_grams if self.chosen_grams is not None else self.suggested_grams
+
+
+class PetPhoto(models.Model):
+    """Foto de referencia para que el sistema reconozca a la mascota."""
+
+    POSES = [
+        ("front", "Frente al plato"),
+        ("eating", "Comiendo"),
+        ("top", "Desde arriba"),
+    ]
+
+    pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name="photos")
+    image = models.ImageField(upload_to="pets/reference/")
+    pose = models.CharField("toma", max_length=10, choices=POSES, default="front")
+    embedding = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "foto de referencia"
+        verbose_name_plural = "fotos de referencia"
+        ordering = ["pose"]
+
+    def __str__(self) -> str:
+        return f"{self.pet.name} · {self.get_pose_display()}"

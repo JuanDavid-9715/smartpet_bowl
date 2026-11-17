@@ -11,7 +11,7 @@
       <p class="price price--lg" style="margin-top:28px">{{ feeder.price_cop|cop }}</p>
       <p class="muted" style="font-size:13px">{{ feeder.note }} El servicio se elige aparte.</p>
       <div style="display:flex;gap:16px;margin-top:26px;flex-wrap:wrap">
-        <a class="btn btn--primary" href="{% url 'core:checkout' %}">Comprar el comedero</a>
+        <a class="btn btn--primary" href="{% url 'core:checkout' %}?item=comedero">Comprar el comedero</a>
         <a class="btn btn--ghost" href="#servidor">Ver el servidor</a>
       </div>
     </div>
@@ -29,14 +29,14 @@
         <p class="muted" style="margin-top:10px">{{ feeder.summary }}</p>
         <p class="price" style="margin-top:22px">{{ feeder.price_cop|cop }}</p>
         <p class="muted" style="font-size:13px">{{ feeder.note }}</p>
-        <a class="btn btn--primary btn--block" style="margin-top:22px" href="{% url 'core:checkout' %}">Comprar el comedero</a>
+        <a class="btn btn--primary btn--block" style="margin-top:22px" href="{% url 'core:checkout' %}?item=comedero">Comprar el comedero</a>
       </article>
       <article class="card card--dark" id="servidor">
         <h3>Servidor</h3>
         <p class="muted" style="margin-top:10px">{{ server.summary }}</p>
         <p class="price" style="margin-top:22px">{{ server.price_cop|cop }}</p>
         <p class="muted" style="font-size:13px">{{ server.note }}</p>
-        <a class="btn btn--ghost btn--block" style="margin-top:22px;border-color:#c4b5fd;color:#fff" href="{% url 'core:checkout' %}">Comprar el servidor</a>
+        <a class="btn btn--ghost btn--block" style="margin-top:22px;border-color:#c4b5fd;color:#fff" href="{% url 'core:checkout' %}?item=servidor">Comprar el servidor</a>
       </article>
     </div>
   </div>
@@ -53,7 +53,7 @@
           <p class="muted" style="margin-top:6px;font-size:14px">{{ bundle.contents }}</p>
           <p class="price" style="margin-top:18px">{{ bundle.price_cop|cop }}</p>
           <p class="muted mono" style="font-size:12px">Antes {{ bundle.before_cop|cop }}</p>
-          <a class="btn btn--ghost btn--block" style="margin-top:20px" href="{% url 'core:checkout' %}">Elegir este combo</a>
+          <a class="btn btn--ghost btn--block" style="margin-top:20px" href="{% url 'core:checkout' %}?item=combo-{{ bundle.slug }}">Elegir este combo</a>
         </article>
       {% endfor %}
     </div>

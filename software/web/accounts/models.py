@@ -13,11 +13,24 @@ class Profile(models.Model):
         "perfil local", default=False,
         help_text="Marca el perfil que usa la Raspberry cuando no hay inicio de sesion.",
     )
+    PLAN_CHOICES = [("hogar", "Hogar"), ("multi", "Multi"), ("local", "Local")]
+    plan = models.CharField("plan", max_length=10, choices=PLAN_CHOICES, default="hogar")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "perfil"
         verbose_name_plural = "perfiles"
+
+    # Cuantos platos permite el plan. None significa sin limite.
+    PLAN_PLATES = {"hogar": 1, "multi": 4, "local": None}
+
+    @property
+    def max_plates(self) -> int | None:
+        from django.conf import settings
+
+        if settings.IS_LOCAL:
+            return None
+        return self.PLAN_PLATES.get(self.plan, 1)
 
     def __str__(self) -> str:
         return self.house_name or self.user.get_username()
