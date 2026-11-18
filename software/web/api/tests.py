@@ -65,3 +65,23 @@ def test_ingest_rejects_unknown_feeder(client, feeder):
         HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
     )
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_ingest_descarta_uid_invalido_sin_romper(client, feeder):
+    """Un uid que no es UUID debe descartarse, no provocar un 500."""
+    body = {
+        "feeder": "SPB-42",
+        "events": [
+            {"uid": "Jiru-1763421234", "pet": "Jiru", "served_grams": 6, "eaten_grams": 0},
+            {"uid": str(uuid.uuid4()), "pet": "Jiru", "served_grams": 65, "eaten_grams": 60, "status": "ate"},
+        ],
+    }
+    response = client.post(
+        reverse("api:ingest"), data=json.dumps(body), content_type="application/json",
+        HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+    )
+    assert response.status_code == 200
+    assert response.json()["created"] == 1
+    assert response.json()["skipped"] == 1
+    assert MealEvent.objects.count() == 1

@@ -1,5 +1,6 @@
 """Ingesta de datos que publica la Raspberry. Idempotente por uid de evento."""
 import json
+import uuid
 from datetime import datetime
 
 from django.conf import settings
@@ -48,7 +49,7 @@ def ingest(request):
     feeder.last_sync = timezone.now()
     feeder.save(update_fields=["is_online", "firmware", "last_sync"])
 
-    created = updated = 0
+    created = updated = skipped = 0
     for item in payload.get("events", []):
         pet_name = str(item.get("pet", "")).strip()
         pet = feeder.pets.filter(name__iexact=pet_name).first() if pet_name else None
@@ -56,8 +57,14 @@ def ingest(request):
             pet = feeder.pets.first()
         if pet is None:
             continue
-        uid = item.get("uid")
-        if not uid:
+        raw_uid = item.get("uid")
+        if not raw_uid:
+            skipped += 1
+            continue
+        try:
+            uid = uuid.UUID(str(raw_uid))
+        except (ValueError, AttributeError, TypeError):
+            skipped += 1
             continue
         defaults = {
             "pet": pet,
@@ -84,7 +91,7 @@ def ingest(request):
             detail=str(alert.get("detail", ""))[:240],
         )
 
-    return JsonResponse({"ok": True, "created": created, "updated": updated})
+    return JsonResponse({"ok": True, "created": created, "updated": updated, "skipped": skipped})
 
 
 def health(request):

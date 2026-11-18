@@ -5,6 +5,7 @@ import datetime as dt
 import logging
 import threading
 import time
+import uuid
 
 from . import config, descriptor, feeding, storage
 from .client import MqttClient
@@ -92,11 +93,15 @@ class FeedingService:
         session = self.sessions.pop(pet, None)
         leftover = float(body.get("gramos", 0) or 0)
         if session is None:
-            session = feeding.Session(pet=pet, planned=leftover, served=leftover)
+            # Sin sesion no sabemos cuanto se sirvio. Se usa la porcion programada
+            # para esa mascota; inventar served=leftover daba "comio 0" siempre.
+            planned = self._planned_grams(pet) or leftover
+            session = feeding.Session(pet=pet, planned=planned, served=planned, confidence=0.0)
+            log.warning("Sobrante sin sesion para %s: se asume servido %.1f g", pet, planned)
         session.leftover = leftover
         self.leftover_pending[pet] = leftover
         event = {
-            "uid": body.get("uid") or f"{pet}-{int(time.time())}",
+            "uid": body.get("uid") or str(uuid.uuid4()),
             "pet": pet,
             "occurred_at": dt.datetime.now(dt.timezone.utc).isoformat(),
             "scheduled_grams": session.planned,
