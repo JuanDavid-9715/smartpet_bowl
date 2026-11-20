@@ -69,7 +69,7 @@ smartpet_bowl/
 
 ## Convenciones tecnicas
 - Python 3 con POO en Raspberry Pi 4.
-- Firmware del ESP32-S3 en C/C++.
+- Firmware del ESP32-S3 en **MicroPython** (Python).
 - Comunicacion por MQTT.
 - Dashboard en Node-RED.
 - Precios y presupuesto en COP.
