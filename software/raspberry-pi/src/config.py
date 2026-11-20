@@ -24,6 +24,9 @@ MODEL_PATH = BASE_DIR / env("MODEL_PATH", "models/mobilenetv3.onnx")
 PET_PHOTOS_DIR = BASE_DIR / env("PET_PHOTOS_DIR", "photos")
 CONFIDENCE_THRESHOLD = float(env("CONFIDENCE_THRESHOLD", "0.62"))
 STREAM_URL = env("STREAM_URL", "")
+# La camara del comedor se pide en QVGA para identificar: en VGA el enlace del
+# hotspot no da y cada foto tarda ~17 s (medido). QVGA tarda ~3,8 s.
+# Las fotos de referencia de la web si se toman en VGA, por otro camino.
 
 TOPIC_EVENT = f"comedero/{FEEDER_CODE}/evento"
 TOPIC_COMMAND = f"comedero/{FEEDER_CODE}/comando"

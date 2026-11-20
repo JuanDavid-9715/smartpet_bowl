@@ -82,14 +82,18 @@ class PetRecognizer:
         mejor, puntaje = ordenados[0]
         segundo = ordenados[1][1] if len(ordenados) > 1 else 0
 
+        # Se registra siempre, tambien cuando no alcanza: sin este dato no se
+        # puede calibrar el piso con tomas reales.
+        log.info(
+            "Coincidencias: %s (piso %d)",
+            ", ".join("%s=%d" % par for par in ordenados),
+            vision.MIN_MATCHES,
+        )
+
         if puntaje < vision.MIN_MATCHES:
             log.info("Sin coincidencias suficientes (mejor %s con %d)", mejor, puntaje)
             return None, 0.0
 
         # Confianza: que tanto domina el primero sobre el segundo.
         confianza = puntaje / (puntaje + segundo) if segundo else 1.0
-        log.info(
-            "Coincidencias: %s",
-            ", ".join("%s=%d" % par for par in ordenados),
-        )
         return mejor, round(confianza, 3)

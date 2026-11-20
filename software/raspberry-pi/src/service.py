@@ -30,6 +30,10 @@ class FeedingService:
         self._plan: dict = {"pets": []}
         self._plan_at = 0.0
         self._stop = threading.Event()
+        # El sensor de presencia avisa muchas veces mientras la mascota esta
+        # delante. Sin este candado cada aviso lanzaba otra identificacion y se
+        # apilaban: el servicio parecia congelado y la placa no daba abasto.
+        self._identificando = threading.Lock()
         log.info("Reconocimiento: ORB %d puntos · mascotas: %s",
                  features.ORB_FEATURES, ", ".join(self.recognizer.pets) or "ninguna")
 
@@ -55,20 +59,30 @@ class FeedingService:
 
     # --- llegada del animal ----------------------------------------------
     def on_presence(self) -> None:
-        frames = self.source.grab(8)
-        if not frames:
-            log.warning("Sin cuadros del stream. Revisa STREAM_URL")
-            self.mqtt.publish("cerrar", {"motivo": "sin_video"})
+        # Si ya hay una identificacion en curso se ignora el aviso: la mascota
+        # sigue delante y el sensor repite. Encadenarlas era lo que hacia que el
+        # servicio pareciera congelado.
+        if not self._identificando.acquire(blocking=False):
             return
-        pet, score = self.recognizer.identify(frames)
-        if pet and score >= config.CONFIDENCE_THRESHOLD:
-            grams = self._planned_grams(pet)
-            self.sessions[pet] = feeding.Session(pet=pet, planned=grams, confidence=score)
-            self.mqtt.publish("servir", {"mascota": pet, "gramos": grams, "confianza": score})
-            log.info("Identificada %s (%.2f) · servir %.1f g", pet, score, grams)
-        else:
-            self.mqtt.publish("cerrar", {"motivo": "no_identificada", "confianza": score})
-            log.info("No identificada (mejor %.2f) · cerrar", score)
+
+        try:
+            frames = self.source.grab()
+            if not frames:
+                log.warning("Sin cuadros de la camara. Revisa STREAM_URL")
+                self.mqtt.publish("cerrar", {"motivo": "sin_video"})
+                return
+
+            pet, score = self.recognizer.identify(frames)
+            if pet and score >= config.CONFIDENCE_THRESHOLD:
+                grams = self._planned_grams(pet)
+                self.sessions[pet] = feeding.Session(pet=pet, planned=grams, confidence=score)
+                self.mqtt.publish("servir", {"mascota": pet, "gramos": grams, "confianza": score})
+                log.info("Identificada %s (%.2f) · servir %.1f g", pet, score, grams)
+            else:
+                self.mqtt.publish("cerrar", {"motivo": "no_identificada", "confianza": score})
+                log.info("No identificada (mejor %.2f) · cerrar", score)
+        finally:
+            self._identificando.release()
 
     # --- eventos del comedero --------------------------------------------
     def handle_message(self, topic: str, body: dict) -> None:
@@ -97,11 +111,15 @@ class FeedingService:
         session = self.sessions.pop(pet, None)
         leftover = float(body.get("gramos", 0) or 0)
         if session is None:
-            # Sin sesion no sabemos cuanto se sirvio. Se usa la porcion programada
-            # para esa mascota; inventar served=leftover daba "comio 0" siempre.
-            planned = self._planned_grams(pet) or leftover
-            session = feeding.Session(pet=pet, planned=planned, served=planned, confidence=0.0)
-            log.warning("Sobrante sin sesion para %s: se asume servido %.1f g", pet, planned)
+            # Sin sesion no hubo comida: nadie fue identificado. Antes se
+            # inventaba una sesion con la porcion programada y quedaba en el
+            # historial "Jiru comio 65.6 de 65.6 g" sin haber comido.
+            log.warning(
+                "Sobrante de %.1f g para %s sin sesion: no se registra la comida",
+                leftover,
+                pet,
+            )
+            return
         session.leftover = leftover
         self.leftover_pending[pet] = leftover
         event = {
