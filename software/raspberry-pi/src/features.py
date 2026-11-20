@@ -27,11 +27,11 @@ ANIMAL_CLASSES = (COCO_CAT, COCO_DOG)
 ORB_FEATURES = 300
 # Test de Lowe: la mejor coincidencia debe ser claramente mejor que la segunda.
 RATIO_TEST = 0.75
-# Medido con las seis fotos reales del comedero y el test de Lowe: la mascota
-# correcta da 12-104 coincidencias y la otra 0-3. Con 10 hay margen de sobra y
-# la toma mas pobre (la de Armi de frente, que llego con bandas de corrupcion)
-# sigue entrando.
-MIN_MATCHES = 10
+# Medido, no elegido: con el test de Lowe la mascota correcta da 60-91
+# coincidencias por cuadro y otra mascota 16-24. Con 10 se colo un falso
+# positivo real: sin nada frente a la camara el servicio "identifico" a Armi con
+# 11 coincidencias y ordeno servir 204 g. Con 40 queda margen por los dos lados.
+MIN_MATCHES = 40
 
 _MODEL_CACHE = {}
 
