@@ -92,7 +92,15 @@ background:var(--surface-alt);color:var(--muted)}
   </section>
 
   <section class="card">
-    <h2>Motor del tornillo</h2>
+    <h2>Llenado (la celda corta)</h2>
+    <div class="row">
+      <button data-fill="Jiru">Llenar Jiru</button>
+      <button data-fill="Armi">Llenar Armi</button>
+      <input type="number" id="objetivo" value="20" min="1" step="1">
+      <span class="mini" style="margin:0">g</span>
+    </div>
+    <p class="mini" id="progreso">Haz fuerza en la celda: el motor para al llegar al objetivo.</p>
+    <h2 style="margin-top:14px">Motor suelto</h2>
     <div class="row">
       <button id="encender">Encender</button>
       <button id="apagar">Apagar</button>
@@ -155,6 +163,17 @@ function pinta(s) {
     $('tag-celda').className = 'tag err';
   }
 
+  var prog = $('progreso');
+  if (s.dosing) {
+    var falta = (s.target - s.grams);
+    prog.textContent = 'Llenando a ' + s.pet + ': ' + s.grams.toFixed(1) +
+      ' de ' + s.target.toFixed(1) + ' g (faltan ' + (falta > 0 ? falta.toFixed(1) : '0') + ')';
+    prog.style.color = 'var(--ok)';
+  } else {
+    prog.textContent = 'Haz fuerza en la celda: el motor para al llegar al objetivo.';
+    prog.style.color = '';
+  }
+
   var m = $('tag-motor');
   m.textContent = s.motor ? 'girando' : 'parado';
   m.className = 'tag' + (s.motor ? ' ok' : '');
@@ -211,6 +230,16 @@ $('calibrar').onclick = function () {
   cmd('/api/calibrate', { grams: parseFloat($('patron').value) });
 };
 $('beep1').onclick = function () { cmd('/api/buzzer', { times: 1 }); };
+
+var relleno = document.querySelectorAll('[data-fill]');
+for (var j = 0; j < relleno.length; j++) {
+  relleno[j].onclick = function () {
+    cmd('/api/dose', {
+      pet: this.getAttribute('data-fill'),
+      grams: parseFloat($('objetivo').value)
+    });
+  };
+}
 
 var botones = document.querySelectorAll('[data-pet]');
 for (var i = 0; i < botones.length; i++) {

@@ -24,6 +24,9 @@ STATE = {
     "grams": 0.0,
     "raw": 0,
     "motor": False,
+    "dosing": False,
+    "target": 0.0,
+    "pet": "",
     "servo": config.TAPA_CERRADA,
     "sensor_ok": False,
     "cell_ok": False,
@@ -43,6 +46,7 @@ _motor_pwm = None
 _motor_b = None
 _sensor = None
 _offset = 0
+_dosis_inicio = 0
 _escala = config.HX711_SCALE
 _arrancado = False
 
@@ -200,6 +204,14 @@ def _bucle():
                 STATE["cell_ok"] = True
             cerca = distancia is not None and 30 < distancia < config.PRESENCIA_MM
             STATE["presence"] = bool(STATE["forced"] or cerca)
+
+            # Dosificacion con la celda real: para cuando el peso llega.
+            if STATE["dosing"]:
+                llego = STATE["grams"] >= STATE["target"]
+                tarde = time.ticks_diff(time.ticks_ms(), _dosis_inicio) > config.DOSIS_TIMEOUT_MS
+                if llego or tarde:
+                    STATE["dosing"] = False
+                    _motor(False)
         finally:
             _lock.release()
         time.sleep_ms(200)
@@ -254,9 +266,26 @@ def set_forced(activo):
     return STATE["forced"]
 
 
+def dose(pet, gramos):
+    """Enciende el motor y lo corta cuando la celda llegue al objetivo."""
+    global _dosis_inicio
+    _lock.acquire()
+    try:
+        STATE["pet"] = pet
+        STATE["target"] = round(STATE["grams"] + float(gramos), 1)
+        STATE["dosing"] = True
+        _dosis_inicio = time.ticks_ms()
+        _motor(True)
+    finally:
+        _lock.release()
+    return STATE["target"]
+
+
 def motor(on):
     _lock.acquire()
     try:
+        if not on:
+            STATE["dosing"] = False
         _motor(bool(on))
     finally:
         _lock.release()
