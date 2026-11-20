@@ -203,7 +203,7 @@ def test_subir_fotos_calcula_vector(client, tmp_path, settings):
 
     response = client.post(reverse("pets:photos", args=[pet.pk]), {
         "front": jpeg((200, 120, 40)),
-        "eating": jpeg((190, 110, 50)),
+        "side": jpeg((190, 110, 50)),
     })
 
     assert response.status_code == 302

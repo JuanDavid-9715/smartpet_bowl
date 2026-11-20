@@ -9,6 +9,7 @@
 <p class="muted" style="margin-top:6px;font-size:13px">
   Pon a {{ pet.name }} frente al comedero, encuadra en la imagen y pulsa cada toma.
   Se guardan al instante, sin descargar ni subir archivos.
+  <strong>Con dos basta</strong> (frente y perfil); la tercera mejora el reconocimiento.
 </p>
 <div class="grid grid--2" style="margin-top:16px;align-items:start;max-width:860px">
   <div class="card" style="padding:14px">
@@ -58,7 +59,7 @@
         <div style="margin-top:10px">{{ field }}</div>
         <p class="muted" style="font-size:11px;margin-top:8px">
           {% if field.name == 'front' %}La cara y el hocico, de frente al plato.
-          {% elif field.name == 'eating' %}Con el hocico dentro, como la vera la camara.
+          {% elif field.name == 'side' %}De lado, con la silueta completa.
           {% else %}El lomo y el tamano, desde arriba.{% endif %}
         </p>
       </div>

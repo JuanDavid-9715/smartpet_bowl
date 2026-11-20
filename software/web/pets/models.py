@@ -174,7 +174,7 @@ class PetPhoto(models.Model):
 
     POSES = [
         ("front", "Frente al plato"),
-        ("eating", "Comiendo"),
+        ("side", "De perfil"),
         ("top", "Desde arriba"),
     ]
 

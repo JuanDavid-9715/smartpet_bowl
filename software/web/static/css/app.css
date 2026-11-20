@@ -171,7 +171,7 @@ hr.rule { border: 0; border-top: 1px solid var(--hairline); margin: 0; }
 .kpi__label { font-size: 13px; font-weight: 500; color: var(--muted); }
 .kpi__value { font-family: var(--font-display); font-size: 44px; font-weight: 700; letter-spacing: -.02em; }
 .bar { height: 10px; border-radius: var(--radius-pill); background: var(--surface-alt); overflow: hidden; }
-.bar span { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width var(--dur-4) var(--ease-out); }
+.bar span { display: block; height: 100%; max-width: 100%; background: var(--accent); border-radius: inherit; transition: width var(--dur-4) var(--ease-out); }
 .pet-thumb { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: var(--radius-md); background: var(--surface-alt); }
 .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
 .status-dot--on { background: var(--success); }
@@ -211,7 +211,10 @@ hr.rule { border: 0; border-top: 1px solid var(--hairline); margin: 0; }
   .grid--2, .grid--3, .grid--4 { grid-template-columns: 1fr; }
   .row { grid-template-columns: 1fr; gap: 6px; }
   .site-nav { display: none; }
-  .app-shell { grid-template-columns: 1fr; }
+  /* minmax(0,1fr) deja que la columna encoja: con 1fr el contenido ancho
+     empuja la pagina y aparece scroll horizontal. */
+  .app-shell { grid-template-columns: minmax(0, 1fr); }
+  .app-main { min-width: 0; overflow-x: hidden; }
   .app-sidebar { display: none; }
   .app-main { padding: 24px 20px 96px; }
   .site-footer__grid { grid-template-columns: 1fr 1fr; }

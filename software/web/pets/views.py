@@ -148,7 +148,7 @@ def pet_photos(request, pk):
     if request.method == "POST" and form.is_valid():
         uploaded = [
             ("front", form.cleaned_data.get("front")),
-            ("eating", form.cleaned_data.get("eating")),
+            ("side", form.cleaned_data.get("side")),
             ("top", form.cleaned_data.get("top")),
         ]
         added = 0
@@ -173,7 +173,7 @@ def pet_photos(request, pk):
         form.add_error(None, "Sube al menos una foto.")
     poses = [
         ("front", "Frente al plato", "La cara y el hocico mirando al comedero."),
-        ("eating", "Comiendo", "Con el hocico dentro, como la ve la camara."),
+        ("side", "De perfil", "La silueta de lado: largo, patas y cola."),
         ("top", "Desde arriba", "El lomo y el tamano, de espaldas al plato."),
     ]
     return render(
@@ -566,7 +566,7 @@ def pet_capture(request, pk, pose):
         raise Http404("Sin equipo local.")
 
     pet = get_object_or_404(_pets(request), pk=pk)
-    if pose not in ("front", "eating", "top"):
+    if pose not in ("front", "side", "top"):
         raise Http404("Toma desconocida.")
 
     try:
@@ -590,6 +590,6 @@ def pet_capture(request, pk, pose):
 
     messages.success(
         request,
-        "Toma guardada. %s tiene %d de 3." % (pet.name, len(fotos)),
+        "Toma guardada. %s tiene %d tomas." % (pet.name, len(fotos)),
     )
     return redirect("pets:photos", pk=pet.pk)

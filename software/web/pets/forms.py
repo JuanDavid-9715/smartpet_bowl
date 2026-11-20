@@ -58,5 +58,5 @@ class PetForm(forms.ModelForm):
 
 class PetPhotoForm(forms.Form):
     front = forms.ImageField(label="Frente al plato", required=False)
-    eating = forms.ImageField(label="Comiendo", required=False)
+    side = forms.ImageField(label="De perfil", required=False)
     top = forms.ImageField(label="Desde arriba", required=False)
