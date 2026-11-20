@@ -5,13 +5,13 @@ Rutas:
   /stream                MJPEG, solo si hay presencia simulada
   /capture               un unico JPEG
   /status                datos tecnicos en JSON
-  /api/state             estado del hardware
-  /api/presence          {"on": true|false}
-  /api/weight            {"grams": 12.5}
-  /api/tare              pone el peso a cero
-  /api/motor             {"on": true, "pet": "Jiru", "grams": 65.6} o {"on": false}
-  /api/servo             {"angle": 0..180}
-  /api/buzzer            {"times": 2}
+  /api/state             distancia, peso, presencia y estado de los actuadores
+  /api/presence          {"on": true|false} fuerza la presencia
+  /api/tare              pone la celda a cero con lo que tenga encima
+  /api/calibrate         {"grams": 500} ajusta la escala con un peso conocido
+  /api/motor             {"on": true|false}
+  /api/servo             {"angle": 0..50}
+  /api/buzzer            {"pet": "Jiru"} toca el nombre en morse, o {"times": 2}
 """
 
 import _thread
@@ -202,21 +202,19 @@ def _api(sock, path, body):
     if path.startswith("/api/state"):
         return _json(sock, hardware.snapshot())
     if path.startswith("/api/presence"):
-        return _json(sock, {"presence": hardware.set_presence(datos.get("on"))})
-    if path.startswith("/api/weight"):
-        return _json(sock, {"weight": hardware.set_weight(datos.get("grams", 0))})
-    if path.startswith("/api/tare"):
-        return _json(sock, {"weight": hardware.tare()})
+        return _json(sock, {"forced": hardware.set_forced(datos.get("on"))})
     if path.startswith("/api/motor"):
-        if datos.get("on"):
-            hardware.motor(True, datos.get("pet", ""), datos.get("grams", 0))
-        else:
-            hardware.motor(False)
-        return _json(sock, hardware.snapshot())
+        return _json(sock, {"motor": hardware.motor(bool(datos.get("on")))})
     if path.startswith("/api/servo"):
         return _json(sock, {"servo": hardware.servo(datos.get("angle", config.TAPA_CERRADA))})
+    if path.startswith("/api/tare"):
+        return _json(sock, {"grams": hardware.tare()})
+    if path.startswith("/api/calibrate"):
+        return _json(sock, {"scale": hardware.calibrar(datos.get("grams", 0))})
     if path.startswith("/api/buzzer"):
-        return _json(sock, {"beeps": hardware.beep(datos.get("times", 2))})
+        if datos.get("pet"):
+            return _json(sock, {"played": hardware.llamar(datos["pet"])})
+        return _json(sock, {"beeps": hardware.beep(datos.get("times", 1))})
     return _json(sock, {"error": "ruta desconocida"})
 
 

@@ -1,48 +1,114 @@
-"""Estado del hardware del comedero y simulacion del plato.
+"""Hardware del comedero: celda, sensor de distancia, motor, servo y buzzer.
 
-No hay celda de carga ni plato: el peso es una variable que el panel mueve.
-El motor, el servo y el buzzer SI son reales, asi que probar aqui prueba el
-cableado de verdad.
+Lo que aqui es real: el VL53L0X mide distancia (y de ahi sale la presencia), la
+celda HX711 entrega el peso, el motor gira por el L298N y el servo mueve la tapa.
+Ya no hay simulacion de peso: el plato no existe, pero la celda si responde.
 
-El motor simula el tornillo sin fin: mientras gira, el peso sube a un caudal
-fijo. Al llegar al objetivo de la mascota se detiene solo, que es el mismo lazo
-que hara la celda de carga cuando exista.
+El buzzer es activo (suena o no suena, sin tono), asi que los nombres de las
+mascotas se tocan en morse.
 """
 
 import _thread
 import time
 
-from machine import PWM, Pin
+from machine import I2C, PWM, Pin
 
 import config
-
-# Cuanto sube el peso por segundo con el motor girando (simulacion).
-RATE_G_PER_S = 8.0
-TICK_S = 0.1
 
 _lock = _thread.allocate_lock()
 
 STATE = {
     "presence": False,
-    "weight": 0.0,
-    "target": 0.0,
+    "forced": False,
+    "distance": -1,
+    "grams": 0.0,
+    "raw": 0,
     "motor": False,
-    "dosing": False,
-    "pet": "",
     "servo": config.TAPA_CERRADA,
+    "sensor_ok": False,
+    "cell_ok": False,
+}
+
+# Morse de los nombres: el buzzer activo solo sabe encender y apagar.
+MORSE = {
+    "A": ".-", "I": "..", "J": ".---", "M": "--", "R": ".-.", "U": "..-",
+    " ": " ",
 }
 
 _servo = None
-_motor_a = None
-_motor_b = None
+_sck = None
+_dout = None
 _buzzer = None
+_motor_pwm = None
+_motor_b = None
+_sensor = None
+_offset = 0
+_escala = config.HX711_SCALE
 _arrancado = False
 
 
-# --------------------------------------------------------------- actuadores
+# ------------------------------------------------------------------- celda
+
+def _celda_cruda():
+    """Lee 24 bits del HX711. Devuelve None si no esta listo."""
+    if _dout is None:
+        return None
+    inicio = time.ticks_ms()
+    while _dout.value():
+        if time.ticks_diff(time.ticks_ms(), inicio) > 200:
+            return None
+    valor = 0
+    for _ in range(24):
+        _sck.value(1)
+        valor = (valor << 1) | _dout.value()
+        _sck.value(0)
+    # pulso 25: deja el chip en ganancia 128 para la proxima lectura
+    _sck.value(1)
+    _sck.value(0)
+    if valor & 0x800000:
+        valor -= 0x1000000
+    return valor
+
+
+def _celda_media(muestras=6):
+    lecturas = []
+    for _ in range(muestras):
+        valor = _celda_cruda()
+        if valor is not None:
+            lecturas.append(valor)
+    if not lecturas:
+        return None
+    return sum(lecturas) // len(lecturas)
+
+
+def tare():
+    global _offset
+    valor = _celda_media(10)
+    if valor is None:
+        return None
+    _offset = valor
+    return 0.0
+
+
+def calibrar(gramos_conocidos):
+    """Con un peso conocido encima, calcula la escala."""
+    global _escala
+    gramos = float(gramos_conocidos)
+    if gramos <= 0:
+        return _escala
+    valor = _celda_media(12)
+    if valor is None:
+        return _escala
+    delta = valor - _offset
+    if delta == 0:
+        return _escala
+    _escala = delta / gramos
+    return round(_escala, 3)
+
+
+# ---------------------------------------------------------------- actuadores
 
 def _pulso(angulo):
-    """Angulo 0..180 al pulso del SG90 (500..2400 us en un periodo de 20 ms)."""
     angulo = max(0, min(180, int(angulo)))
     micro = 500 + (2400 - 500) * angulo / 180
     return int(micro / 20000 * 65535)
@@ -56,82 +122,141 @@ def _mover_servo(angulo):
 
 def _motor(encender):
     STATE["motor"] = bool(encender)
-    if _motor_a is None:
+    if _motor_pwm is None:
         return
+    # Sin ENA por GPIO, la velocidad se regula troceando IN1.
+    _motor_b.value(0)
     if encender:
-        _motor_a.value(1)
-        _motor_b.value(0)
+        _motor_pwm.duty_u16(int(65535 * config.MOTOR_DUTY / 100))
     else:
-        _motor_a.value(0)
-        _motor_b.value(0)
+        _motor_pwm.duty_u16(0)
 
+
+def _tono(secuencia, punto=0.13):
+    """Toca una cadena morse con el buzzer activo."""
+    def _sonar():
+        for simbolo in secuencia:
+            if simbolo == ".":
+                _buzzer.value(1); time.sleep(punto)
+            elif simbolo == "-":
+                _buzzer.value(1); time.sleep(punto * 3)
+            else:
+                time.sleep(punto * 3)
+            _buzzer.value(0)
+            time.sleep(punto)
+        time.sleep(punto * 2)
+
+    try:
+        _thread.start_new_thread(_sonar, ())
+    except OSError:
+        pass
+
+
+def beep(veces=1):
+    """Pitidos sueltos, sin nombre."""
+    def _pitar():
+        for _ in range(int(veces)):
+            _buzzer.value(1); time.sleep(0.18)
+            _buzzer.value(0); time.sleep(0.14)
+    try:
+        _thread.start_new_thread(_pitar, ())
+    except OSError:
+        pass
+    return veces
+
+
+def llamar(nombre):
+    """Toca el nombre de la mascota en morse."""
+    texto = "".join(MORSE.get(letra, "") + " " for letra in nombre.upper())
+    _tono(texto.strip())
+    return nombre
+
+
+# ------------------------------------------------------------------- sensor
+
+def _medir_distancia():
+    if _sensor is None:
+        return None
+    try:
+        return int(_sensor.range)
+    except OSError:
+        return None
+
+
+def _bucle():
+    """Mide distancia y peso, y decide si hay presencia."""
+    while True:
+        distancia = _medir_distancia()
+        crudo = _celda_media(3)
+
+        _lock.acquire()
+        try:
+            if distancia is not None:
+                STATE["distance"] = distancia
+                STATE["sensor_ok"] = True
+            if crudo is not None:
+                STATE["raw"] = crudo
+                STATE["grams"] = round((crudo - _offset) / _escala, 1) if _escala else 0.0
+                STATE["cell_ok"] = True
+            cerca = distancia is not None and 30 < distancia < config.PRESENCIA_MM
+            STATE["presence"] = bool(STATE["forced"] or cerca)
+        finally:
+            _lock.release()
+        time.sleep_ms(200)
+
+
+# ------------------------------------------------------------------ arranque
 
 def init():
-    """Prepara los pines una sola vez."""
-    global _servo, _motor_a, _motor_b, _buzzer, _arrancado
+    global _servo, _sck, _dout, _buzzer, _motor_pwm, _motor_b, _sensor, _arrancado
     if _arrancado:
         return
 
     _servo = PWM(Pin(config.PIN_SERVO), freq=50)
     _mover_servo(config.TAPA_CERRADA)
 
-    _motor_a = Pin(config.PIN_MOTOR_IN1, Pin.OUT, value=0)
+    _motor_pwm = PWM(Pin(config.PIN_MOTOR_IN1), freq=1000, duty_u16=0)
     _motor_b = Pin(config.PIN_MOTOR_IN2, Pin.OUT, value=0)
 
     _buzzer = Pin(config.PIN_BUZZER, Pin.OUT, value=0)
 
+    _sck = Pin(config.PIN_HX711_SCK, Pin.OUT, value=0)
+    _dout = Pin(config.PIN_HX711_DT, Pin.IN)
+
+    # El VL53L0X necesita un pulso real en XSHUT; sin el no responde bien.
+    xshut = Pin(config.PIN_TOF_XSHUT, Pin.OUT)
+    xshut.value(0)
+    time.sleep_ms(20)
+    xshut.value(1)
+    time.sleep_ms(60)
+    try:
+        i2c = I2C(0, scl=Pin(config.PIN_TOF_SCL), sda=Pin(config.PIN_TOF_SDA), freq=100000)
+        import vl53l0x
+        _sensor = vl53l0x.VL53L0X(i2c)
+        STATE["sensor_ok"] = True
+    except Exception as error:  # noqa: BLE001 - el panel debe seguir vivo
+        print("sensor de distancia:", error)
+
+    tare()
+
     _arrancado = True
-    _thread.start_new_thread(_simulador, ())
-
-
-def _simulador():
-    """Sube el peso mientras el motor gira y corta al llegar al objetivo."""
-    while True:
-        _lock.acquire()
-        try:
-            if STATE["motor"]:
-                STATE["weight"] = round(STATE["weight"] + RATE_G_PER_S * TICK_S, 1)
-                if STATE["dosing"] and STATE["weight"] >= STATE["target"]:
-                    STATE["dosing"] = False
-                    _motor(False)
-        finally:
-            _lock.release()
-        time.sleep(TICK_S)
+    _thread.start_new_thread(_bucle, ())
 
 
 # ----------------------------------------------------------------- comandos
 
-def set_presence(activo):
+def set_forced(activo):
     _lock.acquire()
     try:
-        STATE["presence"] = bool(activo)
+        STATE["forced"] = bool(activo)
     finally:
         _lock.release()
-    return STATE["presence"]
+    return STATE["forced"]
 
 
-def set_weight(gramos):
+def motor(on):
     _lock.acquire()
     try:
-        STATE["weight"] = round(max(0.0, float(gramos)), 1)
-    finally:
-        _lock.release()
-    return STATE["weight"]
-
-
-def tare():
-    return set_weight(0)
-
-
-def motor(on, pet="", grams=0.0):
-    _lock.acquire()
-    try:
-        if on and grams:
-            STATE["pet"] = pet
-            STATE["dosing"] = True
-            STATE["target"] = round(STATE["weight"] + float(grams), 1)
-        if not on:
-            STATE["dosing"] = False
         _motor(bool(on))
     finally:
         _lock.release()
@@ -145,21 +270,6 @@ def servo(angulo):
     finally:
         _lock.release()
     return STATE["servo"]
-
-
-def beep(veces=2):
-    """Buzzer activo: se enciende y se apaga desde un hilo para no bloquear."""
-    def _sonar():
-        for _ in range(int(veces)):
-            _buzzer.value(1)
-            time.sleep(0.18)
-            _buzzer.value(0)
-            time.sleep(0.14)
-    try:
-        _thread.start_new_thread(_sonar, ())
-    except OSError:
-        pass
-    return veces
 
 
 def snapshot():

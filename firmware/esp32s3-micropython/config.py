@@ -38,8 +38,9 @@ DEFAULT_SIZE = "svga"
 
 # --- Actuadores y sensores (etapas siguientes) ----------------------------
 PIN_SERVO = 14
-TAPA_CERRADA = 20        # angulo del servo con la tapa puesta
-TAPA_ABIERTA = 105       # angulo con la tapa levantada
+TAPA_CERRADA = 0         # angulo del servo con la tapa puesta
+TAPA_ABIERTA = 50        # angulo con la tapa levantada
+MOTOR_DUTY = 40          # porcentaje: sin ENA se trocea IN1 para ir lento
 PIN_BUZZER = 21
 PIN_MOTOR_IN1 = 47
 PIN_MOTOR_IN2 = 48
@@ -48,8 +49,12 @@ PIN_HX711_SCK = 39
 PIN_TOF_SCL = 1
 PIN_TOF_SDA = 2
 PIN_TOF_XSHUT = 41
+PRESENCIA_MM = 700       # a menos de esto se considera que hay algo delante
 PIN_TOF_INT = 42
 
 # --- MQTT ----------------------------------------------------------------
 MQTT_PORT = 1883
+
+# --- Celda de carga -------------------------------------------------------
+HX711_SCALE = -430.0     # unidades por gramo; se ajusta con "Calibrar"
 MQTT_KEEPALIVE = 30

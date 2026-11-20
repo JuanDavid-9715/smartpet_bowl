@@ -1,7 +1,7 @@
 """Panel de pruebas del hardware, servido por el propio ESP32.
 
-Mismos colores que la web (tema oscuro). Se usa para probar el motor, el servo,
-el buzzer y el gating del video sin tener el plato ni la celda de carga.
+Mismos colores que la web (tema oscuro). Aqui se ve el sensor de distancia y la
+celda de carga en vivo, y se prueban motor, servo y buzzer.
 """
 
 PAGE = """<!doctype html>
@@ -12,7 +12,7 @@ PAGE = """<!doctype html>
 <style>
 :root{--bg:#0b0714;--surface:#171326;--surface-alt:#221c33;--ink:#f5f3fa;
 --muted:#a79fc0;--accent:#6d28d9;--accent-text:#c4b5fd;--border:#3a3350;
---ok:#7fdcb5;--err:#f093a5}
+--ok:#7fdcb5;--err:#f093a5;--warn:#f0c98a}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);
 font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
@@ -22,7 +22,7 @@ h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.3px}
 h1 span{color:var(--muted);font-weight:400}
 .pill{font-size:12px;color:var(--muted);border:1px solid var(--border);
 border-radius:999px;padding:4px 10px}
-.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(330px,1fr);
+.grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(330px,1fr);
 gap:16px;padding:16px}
 @media(max-width:900px){.grid{grid-template-columns:1fr}}
 .card{background:var(--surface);border:1px solid var(--border);
@@ -41,13 +41,17 @@ background:var(--surface-alt);color:var(--ink);padding:9px 14px;
 transition:border-color .15s,background .15s}
 button:hover{border-color:var(--accent-text)}
 button.on{background:var(--accent);border-color:var(--accent);color:#fff}
-.metric{display:flex;justify-content:space-between;align-items:baseline;margin:2px 0 10px}
-.metric b{font-size:28px;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.metric{display:flex;justify-content:space-between;align-items:baseline;margin:2px 0 8px}
+.metric b{font-size:30px;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
 .metric small{color:var(--muted);font-size:12px}
+.mini{font-size:12px;color:var(--muted);margin:0 0 10px}
 input[type=range]{width:100%;accent-color:var(--accent);margin:0 0 12px}
+input[type=number]{width:90px;font:inherit;background:var(--surface-alt);
+color:var(--ink);border:1px solid var(--border);border-radius:8px;padding:8px}
 .tag{font-size:12px;padding:3px 9px;border-radius:999px;
 background:var(--surface-alt);color:var(--muted)}
 .tag.ok{color:var(--ok)}
+.tag.warn{color:var(--warn)}
 .tag.err{color:var(--err)}
 </style></head>
 <body>
@@ -56,32 +60,43 @@ background:var(--surface-alt);color:var(--muted)}
   <span class="pill" id="conn">conectando&hellip;</span>
 </header>
 <div class="grid">
-  <section class="card">
+  <section class="card" style="grid-row: span 2">
     <h2>Camara</h2>
     <div class="video">
-      <div class="off" id="off"><b>Sin presencia</b>
-        El video solo se envia cuando el sensor detecta algo</div>
+      <div class="off" id="off"><b id="off-titulo">Sin presencia</b>
+        <span id="off-texto">El video solo se envia cuando el sensor detecta algo</span></div>
       <img id="img" alt="video">
     </div>
     <div class="row" style="margin-top:12px">
-      <button id="presencia">Simular presencia</button>
+      <span class="tag" id="tag-distancia">sensor: -</span>
       <span class="tag" id="tag-presencia">ausente</span>
+    </div>
+    <div class="row">
+      <button id="forzar">Forzar presencia</button>
+      <button id="soltar">Soltar</button>
     </div>
   </section>
 
   <section class="card">
-    <h2>Peso del plato (simulado)</h2>
-    <div class="metric"><b id="peso">0.0 g</b><small id="objetivo"></small></div>
-    <input type="range" id="slider" min="0" max="350" step="0.5" value="0">
+    <h2>Celda de carga</h2>
+    <div class="metric"><b id="peso">-</b><small id="crudo"></small></div>
+    <p class="mini">Pon algo encima: el numero debe moverse. Si no, revisa HX711.</p>
     <div class="row">
-      <button id="tara">Poner a cero</button>
-      <span class="tag" id="tag-motor">motor parado</span>
+      <button id="tara">Tarar (vac&iacute;a)</button>
+      <span class="tag" id="tag-celda">sin respuesta</span>
     </div>
-    <h2 style="margin-top:16px">Dosificar</h2>
     <div class="row">
-      <button data-pet="Jiru" data-g="65.6">Jiru &middot; 65.6 g</button>
-      <button data-pet="Armi" data-g="204.3">Armi &middot; 204.3 g</button>
-      <button id="parar">Parar motor</button>
+      <input type="number" id="patron" value="500" min="1" step="1">
+      <button id="calibrar">Calibrar con ese peso</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Motor del tornillo</h2>
+    <div class="row">
+      <button id="encender">Encender</button>
+      <button id="apagar">Apagar</button>
+      <span class="tag" id="tag-motor">parado</span>
     </div>
   </section>
 
@@ -90,51 +105,59 @@ background:var(--surface-alt);color:var(--muted)}
     <div class="row">
       <button id="abrir">Abrir</button>
       <button id="cerrar">Cerrar</button>
-      <span class="tag" id="angulo">20&deg;</span>
+      <span class="tag" id="angulo">0&deg;</span>
     </div>
-    <input type="range" id="servo" min="0" max="180" step="1" value="20">
+    <input type="range" id="servo" min="0" max="50" step="1" value="0">
   </section>
 
   <section class="card">
-    <h2>Buzzer</h2>
+    <h2>Buzzer &middot; llamar por nombre</h2>
+    <div class="row">
+      <button data-pet="Jiru">Llamar a Jiru</button>
+      <button data-pet="Armi">Llamar a Armi</button>
+    </div>
     <div class="row">
       <button id="beep1">1 pitido</button>
-      <button id="beep2">2 pitidos</button>
       <span class="tag" id="tag-buzzer">listo</span>
     </div>
   </section>
 </div>
 <script>
 var $ = function (id) { return document.getElementById(id); };
-var arrastrando = false;
 var imgCargada = false;
-var presencia = false;
 
 function pinta(s) {
   $('conn').textContent = 'en linea';
   $('conn').style.color = 'var(--ok)';
-  $('peso').textContent = s.weight.toFixed(1) + ' g';
-  $('objetivo').textContent = s.dosing
-    ? ('objetivo ' + s.target.toFixed(1) + ' g de ' + s.pet)
-    : '';
-  if (!arrastrando) { $('slider').value = s.weight; }
 
-  var tm = $('tag-motor');
-  if (s.motor) {
-    tm.textContent = s.dosing ? ('dosificando ' + s.pet) : 'motor girando';
-    tm.className = 'tag ok';
+  var d = $('tag-distancia');
+  if (s.sensor_ok && s.distance >= 0) {
+    d.textContent = 'sensor: ' + s.distance + ' mm';
+    d.className = 'tag ok';
   } else {
-    tm.textContent = 'motor parado';
-    tm.className = 'tag';
+    d.textContent = 'sensor: sin lectura';
+    d.className = 'tag err';
   }
 
-  presencia = s.presence;
-  var tp = $('tag-presencia');
-  tp.textContent = s.presence ? 'presencia detectada' : 'ausente';
-  tp.className = 'tag' + (s.presence ? ' ok' : '');
-  $('presencia').textContent = s.presence ? 'Quitar presencia' : 'Simular presencia';
-  if (s.presence) { $('presencia').className = 'on'; }
-  else { $('presencia').className = ''; }
+  var p = $('tag-presencia');
+  p.textContent = s.forced ? 'forzada' : (s.presence ? 'presencia' : 'ausente');
+  p.className = 'tag' + (s.presence ? ' ok' : '');
+
+  if (s.cell_ok) {
+    $('peso').textContent = s.grams.toFixed(1) + ' g';
+    $('crudo').textContent = 'crudo ' + s.raw;
+    $('tag-celda').textContent = 'ok';
+    $('tag-celda').className = 'tag ok';
+  } else {
+    $('peso').textContent = '-';
+    $('crudo').textContent = '';
+    $('tag-celda').textContent = 'sin respuesta';
+    $('tag-celda').className = 'tag err';
+  }
+
+  var m = $('tag-motor');
+  m.textContent = s.motor ? 'girando' : 'parado';
+  m.className = 'tag' + (s.motor ? ' ok' : '');
 
   $('angulo').innerHTML = s.servo + '&deg;';
   $('servo').value = s.servo;
@@ -148,6 +171,11 @@ function pinta(s) {
     img.style.display = 'none';
     if (imgCargada) { img.removeAttribute('src'); imgCargada = false; }
     $('off').style.display = 'block';
+    $('off-titulo').textContent = s.sensor_ok
+      ? 'Sin presencia' : 'Sensor de distancia sin lectura';
+    $('off-texto').textContent = s.sensor_ok
+      ? 'Acerca algo a menos de 700 mm y el video se enciende'
+      : 'Revisa SDA=2, SCL=1 y XSHUT=41';
   }
 }
 
@@ -169,39 +197,29 @@ function cmd(ruta, cuerpo) {
   }).then(estado).catch(estado);
 }
 
-$('presencia').onclick = function () {
-  cmd('/api/presence', { on: !presencia });
-};
-$('slider').addEventListener('pointerdown', function () { arrastrando = true; });
-$('slider').addEventListener('pointerup', function () { arrastrando = false; });
-$('slider').addEventListener('input', function (e) {
-  $('peso').textContent = parseFloat(e.target.value).toFixed(1) + ' g';
-});
-$('slider').addEventListener('change', function (e) {
-  cmd('/api/weight', { grams: parseFloat(e.target.value) });
-});
-$('tara').onclick = function () { cmd('/api/tare', {}); };
-$('parar').onclick = function () { cmd('/api/motor', { on: false }); };
-$('abrir').onclick = function () { cmd('/api/servo', { angle: 105 }); };
-$('cerrar').onclick = function () { cmd('/api/servo', { angle: 20 }); };
+$('forzar').onclick = function () { cmd('/api/presence', { on: true }); };
+$('soltar').onclick = function () { cmd('/api/presence', { on: false }); };
+$('encender').onclick = function () { cmd('/api/motor', { on: true }); };
+$('apagar').onclick = function () { cmd('/api/motor', { on: false }); };
+$('abrir').onclick = function () { cmd('/api/servo', { angle: 50 }); };
+$('cerrar').onclick = function () { cmd('/api/servo', { angle: 0 }); };
 $('servo').addEventListener('change', function (e) {
   cmd('/api/servo', { angle: parseInt(e.target.value) });
 });
+$('tara').onclick = function () { cmd('/api/tare', {}); };
+$('calibrar').onclick = function () {
+  cmd('/api/calibrate', { grams: parseFloat($('patron').value) });
+};
 $('beep1').onclick = function () { cmd('/api/buzzer', { times: 1 }); };
-$('beep2').onclick = function () { cmd('/api/buzzer', { times: 2 }); };
 
 var botones = document.querySelectorAll('[data-pet]');
 for (var i = 0; i < botones.length; i++) {
   botones[i].onclick = function () {
-    cmd('/api/motor', {
-      on: true,
-      pet: this.getAttribute('data-pet'),
-      grams: parseFloat(this.getAttribute('data-g'))
-    });
+    cmd('/api/buzzer', { pet: this.getAttribute('data-pet') });
   };
 }
 
-setInterval(estado, 700);
+setInterval(estado, 600);
 estado();
 </script>
 </body></html>
