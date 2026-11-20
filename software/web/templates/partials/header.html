@@ -4,13 +4,17 @@
       {% include "partials/logo.html" %}
       <span>SmartPet Bowl</span>
     </a>
-    <nav class="site-nav" aria-label="Principal">
+    <nav class="site-nav" id="site-nav" aria-label="Principal">
       <a href="{% url 'core:product' %}" {% if request.resolver_match.url_name == 'product' %}aria-current="page"{% endif %}>Producto</a>
       <a href="{% url 'core:plans' %}" {% if request.resolver_match.url_name == 'plans' %}aria-current="page"{% endif %}>Planes</a>
       <a href="{% url 'core:open_source' %}" {% if request.resolver_match.url_name == 'open_source' %}aria-current="page"{% endif %}>Codigo abierto</a>
     </nav>
     <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar tema">
       <span data-theme-label>Oscuro</span>
+    </button>
+    <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false"
+            aria-controls="site-nav" aria-label="Abrir menu">
+      <span></span><span></span><span></span>
     </button>
     <div class="header-auth">
       <div class="auth-pill">
