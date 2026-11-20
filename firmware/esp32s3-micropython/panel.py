@@ -262,7 +262,10 @@ function pinta(s) {
   var img = $('img');
   var visor = $('visor');
   if (s.presence) {
-    if (!imgCargada) { img.src = '/stream?size=' + calidad + '&t=' + Date.now(); imgCargada = true; }
+    // Foto que se refresca, no MJPEG. El enlace del comedor da ~1 KB/s y un
+    // flujo de video lo satura: la placa deja de contestar la API y el panel
+    // muestra "sin conexion".
+    if (!imgCargada) { pedirFoto(); }
     img.style.display = 'block';
     visor.className = 'visor';
     $('off-titulo').parentNode.style.display = 'none';
@@ -281,13 +284,42 @@ function pinta(s) {
 }
 
 function estado() {
+  // Encadenado: la siguiente consulta sale solo cuando la anterior termino.
+  // Con este enlace cada /api/state tarda 1-3 s; un setInterval fijo encolaba
+  // peticiones hasta llenar la cola de la placa.
   fetch('/api/state', { cache: 'no-store' })
     .then(function (r) { return r.json(); })
-    .then(pinta)
+    .then(function (s) { fallos = 0; pinta(s); })
     .catch(function () {
-      $('conn').textContent = 'sin conexion';
-      $('conn').style.color = 'var(--err)';
+      fallos++;
+      // Un corte suelto no es "sin conexion": el enlace pierde paquetes.
+      if (fallos >= 3) {
+        $('conn').textContent = 'sin conexion';
+        $('conn').style.color = 'var(--err)';
+      }
+    })
+    .then(function () {
+      window.setTimeout(estado, fallos ? 4000 : 2500);
     });
+}
+
+var fallos = 0;
+var pidiendoFoto = false;
+
+function pedirFoto() {
+  if (pidiendoFoto) { return; }
+  pidiendoFoto = true;
+  imgCargada = true;
+  var img = $('img');
+  img.onload = function () {
+    pidiendoFoto = false;
+    window.setTimeout(function () { if (imgCargada) { pedirFoto(); } }, 800);
+  };
+  img.onerror = function () {
+    pidiendoFoto = false;
+    window.setTimeout(function () { if (imgCargada) { pedirFoto(); } }, 3000);
+  };
+  img.src = '/capture?size=' + calidad + '&t=' + Date.now();
 }
 
 var calidad = 'qvga';
@@ -299,20 +331,28 @@ function cambiarCalidad(nueva) {
   document.getElementById('cal-fluido').className = nueva === 'qvga' ? 'primary' : '';
   document.getElementById('cal-nitido').className = nueva === 'vga' ? 'primary' : '';
   if (document.getElementById('img').style.display === 'block') {
-    document.getElementById('img').src = '/stream?size=' + nueva + '&t=' + Date.now();
-    imgCargada = true;
+    pedirFoto();
   }
 }
 
 document.getElementById('cal-fluido').onclick = function () { cambiarCalidad('qvga'); };
 document.getElementById('cal-nitido').onclick = function () { cambiarCalidad('vga'); };
 
+function refrescar() {
+  // Se usa despues de un comando: no encadena, para no abrir otra cadena de
+  // consultas ademas de la del sondeo.
+  fetch('/api/state', { cache: 'no-store' })
+    .then(function (r) { return r.json(); })
+    .then(function (s) { fallos = 0; pinta(s); })
+    .catch(function () {});
+}
+
 function cmd(ruta, cuerpo) {
   fetch(ruta, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(cuerpo || {})
-  }).then(estado).catch(estado);
+  }).then(refrescar).catch(refrescar);
 }
 
 $('forzar').onclick = function () { cmd('/api/presence', { on: true }); };
@@ -350,7 +390,6 @@ for (var i = 0; i < mascotas.length; i++) {
   };
 }
 
-setInterval(estado, 600);
 estado();
 </script>
 </body></html>

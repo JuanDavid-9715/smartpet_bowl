@@ -181,6 +181,7 @@
   var vacioTitulo = document.getElementById('vacio-titulo');
   var vacioTexto = document.getElementById('vacio-texto');
   var cargado = false;
+  var pidiendo = false;
 
   function mmss(seg) {
     var t = Math.max(0, Math.round(seg || 0));
@@ -225,15 +226,12 @@
     }
 
     if (s.presence) {
-      if (!cargado) {
-        video.src = '/app/eventos/video/?t=' + Date.now();
-        cargado = true;
-      }
+      if (!cargado) { pedirFoto(); }
       video.style.display = 'block';
       vacio.style.display = 'none';
     } else {
       video.style.display = 'none';
-      if (cargado) { video.removeAttribute('src'); cargado = false; }
+      if (cargado) { video.removeAttribute('src'); cargado = false; pidiendo = false; }
       vacio.style.display = 'flex';
       vacioTitulo.textContent = 'Camara apagada';
       vacioTexto.textContent = s.sensor_ok
@@ -242,14 +240,34 @@
     }
   }
 
+  function pedirFoto() {
+    // Foto que se refresca, no MJPEG: el flujo de video satura el enlace del
+    // comedor y deja la placa sin responder. La siguiente se pide cuando la
+    // anterior termino, igual que en la vista previa de fotos.
+    if (pidiendo) { return; }
+    pidiendo = true;
+    cargado = true;
+    video.onload = function () {
+      pidiendo = false;
+      window.setTimeout(function () { if (cargado) { pedirFoto(); } }, 800);
+    };
+    video.onerror = function () {
+      pidiendo = false;
+      window.setTimeout(function () { if (cargado) { pedirFoto(); } }, 3000);
+    };
+    video.src = '/app/eventos/foto/?t=' + Date.now();
+  }
+
   function pedir() {
+    // Encadenado: con este enlace cada consulta tarda, y un setInterval fijo
+    // encolaba peticiones contra la placa.
     fetch('/app/eventos/estado/', { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(pintar)
-      .catch(function () { pintar({ online: false }); });
+      .catch(function () { pintar({ online: false }); })
+      .then(function () { window.setTimeout(pedir, 1500); });
   }
 
-  setInterval(pedir, 1000);
   pedir();
 })();
 </script>

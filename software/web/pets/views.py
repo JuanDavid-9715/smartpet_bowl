@@ -502,6 +502,22 @@ def live_state(request):
 
 
 @login_required
+def live_photo(request):
+    """Una foto suelta del comedero para el panel tecnico.
+
+    Se usa en vez del MJPEG: el enlace del comedor da ~1 KB/s y un flujo de
+    video lo satura, la placa deja de contestar y todo lo demas parece caido.
+    """
+    if not settings.IS_LOCAL:
+        raise Http404("Sin equipo local.")
+    try:
+        datos = _foto_del_equipo(ancho=12, tamano="qvga")
+    except requests.RequestException:
+        raise Http404("La camara del comedero no responde.")
+    return HttpResponse(datos, content_type="image/jpeg")
+
+
+@login_required
 def live_video(request):
     """Proxy del MJPEG. Solo transmite si el sensor ve algo."""
     if not settings.IS_LOCAL:

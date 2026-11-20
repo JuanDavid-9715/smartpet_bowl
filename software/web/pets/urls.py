@@ -23,6 +23,7 @@ urlpatterns = [
     path("eventos/", views.events, name="events"),
     path("eventos/estado/", views.live_state, name="live_state"),
     path("eventos/video/", views.live_video, name="live_video"),
+    path("eventos/foto/", views.live_photo, name="live_photo"),
     path("historial/", views.history, name="history"),
     path("alertas/", views.alerts, name="alerts"),
     path("ajustes/", views.settings_view, name="settings"),
