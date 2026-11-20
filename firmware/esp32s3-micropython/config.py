@@ -21,13 +21,15 @@ CAMERA = {
     "powerdown_pin": -1,
     "reset_pin": -1,
     "pixel_format": PixelFormat.JPEG,
-    "frame_size": FrameSize.HD,      # 1280x720
-    "jpeg_quality": 85,              # es un porcentaje: mas alto = mejor
+    "frame_size": FrameSize.SVGA,    # 800x600: el enlace WiFi manda
+    "jpeg_quality": 80,              # es un porcentaje: mas alto = mejor
     "fb_count": 2,
 }
 
 # --- Servidor de video ----------------------------------------------------
 HTTP_PORT = 80
+# vga (fluido), svga (equilibrado) o hd (nitido). Se puede cambiar desde la web.
+DEFAULT_SIZE = "svga"
 
 # --- Actuadores y sensores (etapas siguientes) ----------------------------
 PIN_SERVO = 14

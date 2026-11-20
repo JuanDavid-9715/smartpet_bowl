@@ -1,22 +1,31 @@
 """Servidor HTTP con visor MJPEG.
 
 Rutas:
-  /           pagina con el video
-  /stream     flujo multipart/x-mixed-replace (lo que ve la camara)
-  /capture    un unico JPEG
-  /status     datos del comedero en JSON
+  /                      pagina con el video
+  /stream?size=&q=       flujo multipart/x-mixed-replace
+  /capture?size=&q=      un unico JPEG
+  /status                datos del comedero en JSON
 
-Servidor bloqueante de un cliente a la vez: aqui solo mira una persona.
+size admite vga, svga o hd. Sirve para comparar fluidez contra nitidez sin
+volver a flashear: el enlace WiFi manda, no la camara.
 """
 
 import gc
 import socket
 import time
 
+from camera import FrameSize
+
 import cam
 import config
 
 BOUNDARY = "spbframe"
+
+SIZES = {
+    "vga": FrameSize.VGA,
+    "svga": FrameSize.SVGA,
+    "hd": FrameSize.HD,
+}
 
 PAGE = """<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
@@ -27,15 +36,25 @@ PAGE = """<!doctype html>
   header{padding:14px 18px;font-size:15px;letter-spacing:.3px;color:#9aa7b4}
   header b{color:#e6edf3;font-weight:600}
   main{padding:0 18px 18px}
-  img{width:100%;max-width:1280px;height:auto;border-radius:10px;display:block;background:#000}
+  nav{margin:0 0 12px}
+  nav a{display:inline-block;padding:7px 14px;margin-right:8px;border-radius:8px;
+        background:#1b2230;color:#c8d4e0;text-decoration:none;font-size:13px}
+  nav a.on{background:#2a6df4;color:#fff}
+  img{width:100%;max-width:__MAXW__px;height:auto;border-radius:10px;display:block;background:#000}
   p{margin:10px 0 0;font-size:13px;color:#8b98a5}
   a{color:#4aa3ff}
 </style></head>
 <body>
 <header><b>SmartPet Bowl</b> &middot; camara en vivo</header>
 <main>
-  <img src="/stream" alt="video">
-  <p>Un cuadro suelto: <a href="/capture">/capture</a> &middot; datos: <a href="/status">/status</a></p>
+  <nav>
+    <a href="/?size=vga" class="__VGA__">Fluido</a>
+    <a href="/?size=svga" class="__SVGA__">Equilibrado</a>
+    <a href="/?size=hd" class="__HD__">Nitido</a>
+  </nav>
+  <img src="/stream?size=__SIZE__" alt="video">
+  <p>Un cuadro suelto: <a href="/capture?size=__SIZE__">/capture</a> &middot;
+     datos: <a href="/status">/status</a></p>
 </main>
 </body></html>
 """
@@ -63,7 +82,8 @@ def _send_text(sock, body, content_type="text/plain; charset=utf-8"):
     _send_all(sock, raw)
 
 
-def _path(sock):
+def _request(sock):
+    """Devuelve (ruta, parametros) de la primera linea de la peticion."""
     sock.settimeout(3)
     data = b""
     try:
@@ -74,13 +94,48 @@ def _path(sock):
             data += chunk
     except OSError:
         pass
+
     line = data.split(b"\r\n", 1)[0].decode()
     parts = line.split(" ")
-    return parts[1] if len(parts) > 1 else "/"
+    target = parts[1] if len(parts) > 1 else "/"
+
+    path, _, query = target.partition("?")
+    params = {}
+    for par in query.split("&"):
+        if "=" in par:
+            clave, _, valor = par.partition("=")
+            params[clave] = valor
+    return path, params
 
 
-def _jpeg(sock):
-    camara = cam.camera()
+def _apply(camara, params):
+    """Ajusta tamano y calidad si vienen en la URL. Devuelve el nombre usado."""
+    size = params.get("size", config.DEFAULT_SIZE)
+    if size in SIZES:
+        try:
+            camara.set_frame_size(SIZES[size])
+        except OSError:
+            size = config.DEFAULT_SIZE
+    else:
+        size = config.DEFAULT_SIZE
+
+    quality = params.get("q")
+    if quality:
+        try:
+            valor = int(quality)
+            if 10 <= valor <= 100:
+                camara.set_quality(valor)
+        except (ValueError, OSError):
+            pass
+    return size
+
+
+def _max_width(camara):
+    return camara.get_pixel_width() if camara.get_pixel_width() else 1280
+
+
+def _jpeg(sock, camara, params):
+    _apply(camara, params)
     buf = cam.frame(camara)
     try:
         head = (
@@ -96,7 +151,8 @@ def _jpeg(sock):
         camara.free_buffer()
 
 
-def _stream(sock, camara):
+def _stream(sock, camara, params):
+    _apply(camara, params)
     head = (
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: multipart/x-mixed-replace; boundary=%s\r\n"
@@ -104,6 +160,7 @@ def _stream(sock, camara):
         "Connection: close\r\n\r\n"
     ) % BOUNDARY
     _send_all(sock, head.encode())
+
     frames = 0
     while True:
         buf = cam.frame(camara)
@@ -121,15 +178,33 @@ def _stream(sock, camara):
             gc.collect()
 
 
-def _status(sock, ip):
-    camara = cam.camera()
+def _page(sock, camara, params):
+    size = params.get("size", config.DEFAULT_SIZE)
+    if size not in SIZES:
+        size = config.DEFAULT_SIZE
+    _apply(camara, {"size": size})
+    html = (
+        PAGE.replace("__SIZE__", size)
+        .replace("__MAXW__", str(_max_width(camara)))
+        .replace("__VGA__", "on" if size == "vga" else "")
+        .replace("__SVGA__", "on" if size == "svga" else "")
+        .replace("__HD__", "on" if size == "hd" else "")
+    )
+    _send_text(sock, html, "text/html; charset=utf-8")
+
+
+def _status(sock, camara, ip):
     info = cam.info(camara)
-    body = '{"feeder":"%s","ip":"%s","sensor":"%s","size":"%dx%d","free_mem":%d}' % (
+    body = (
+        '{"feeder":"%s","ip":"%s","sensor":"%s","width":%d,"height":%d,'
+        '"quality":%d,"free_mem":%d}'
+    ) % (
         config.FEEDER_CODE,
         ip,
         info["sensor"],
         info["width"],
         info["height"],
+        camara.get_quality(),
         gc.mem_free(),
     )
     _send_text(sock, body, "application/json")
@@ -149,22 +224,24 @@ def serve(ip):
         except OSError:
             continue
 
-        # Sin esto, Nagle retiene cada cuadro hasta 200 ms y el video se ve cortado.
+        # Sin esto, Nagle retiene cada cuadro hasta 200 ms y el video se corta.
         try:
             client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         except OSError:
             pass
 
+        path = "/"
         try:
-            path = _path(client)
+            path, params = _request(client)
+            camara = cam.camera()
             if path.startswith("/stream"):
-                _stream(client, cam.camera())
+                _stream(client, camara, params)
             elif path.startswith("/capture"):
-                _jpeg(client)
+                _jpeg(client, camara, params)
             elif path.startswith("/status"):
-                _status(client, ip)
+                _status(client, camara, ip)
             else:
-                _send_text(client, PAGE, "text/html; charset=utf-8")
+                _page(client, camara, params)
         except Exception as error:  # noqa: BLE001 - el visor no debe caerse
             print("error atendiendo %s: %r" % (path, error))
         finally:
