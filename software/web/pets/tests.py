@@ -238,6 +238,46 @@ def test_vision_compara():
     assert vision.combine([vision.encode(a), vision.encode(a)]) != ""
 
 
+def test_vision_separa_mascotas_parecidas():
+    """El test de Lowe debe separar: la misma foto girada si, otra foto no.
+
+    Con crossCheck esto fallaba: dos fotos distintas de la misma habitacion
+    compartian decenas de puntos por la pared y la mesa.
+    """
+    import cv2
+    import numpy as np
+
+    from pets import features as vision
+
+    def puntos(img):
+        gris = cv2.equalizeHist(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+        _, des = cv2.ORB_create(nfeatures=vision.ORB_FEATURES).detectAndCompute(gris, None)
+        return des
+
+    def textura(semilla):
+        rng = np.random.default_rng(semilla)
+        img = cv2.GaussianBlur(rng.integers(0, 255, (240, 320, 3), dtype=np.uint8), (5, 5), 0)
+        for _ in range(12):
+            p1 = tuple(int(v) for v in rng.integers(0, [320, 240]))
+            p2 = tuple(int(v) for v in rng.integers(0, [320, 240]))
+            cv2.rectangle(img, p1, p2, (255, 255, 255), 2)
+        return img
+
+    base = textura(3)
+    girada = cv2.warpAffine(
+        base,
+        cv2.getRotationMatrix2D((160, 120), 4, 1.0),
+        (320, 240),
+        borderMode=cv2.BORDER_REPLICATE,
+    )
+
+    misma = vision.match_score(puntos(base), puntos(girada))
+    ajena = vision.match_score(puntos(base), puntos(textura(9)))
+
+    assert misma >= vision.MIN_MATCHES, (misma, ajena)
+    assert ajena < vision.MIN_MATCHES, (misma, ajena)
+
+
 @pytest.mark.django_db
 @override_settings(IS_LOCAL=True)
 def test_eventos_agrega_comida(client):
@@ -589,8 +629,14 @@ def test_capturar_no_existe_en_la_nube(client):
 
 @pytest.mark.django_db
 @override_settings(IS_LOCAL=True)
-def test_capturar_rechaza_si_no_hay_animal(client, monkeypatch):
-    """Una toma sin mascota no debe guardarse: ensuciaria el descriptor."""
+def test_capturar_avisa_si_no_se_ve_una_mascota(client, monkeypatch):
+    """Sin mascota detectable se guarda igual, pero con aviso.
+
+    El detector no es un filtro: las fotos reales del comedero no le dan un
+    gato y aun asi el comparador las separa. Bloquear impedia volver a tomar
+    la foto.
+    """
+    from django.contrib.messages import get_messages
     from django.urls import reverse
 
     from pets import views
@@ -609,6 +655,8 @@ def test_capturar_rechaza_si_no_hay_animal(client, monkeypatch):
     pet = Pet.objects.create(owner=user, name="Jiru", species="cat", weight_kg=10)
     client.force_login(user)
 
-    respuesta = client.post(reverse("pets:photo_capture", args=[pet.pk, "front"]))
-    assert respuesta.status_code == 302
-    assert pet.photos.count() == 0
+    respuesta = client.post(reverse("pets:photo_capture", args=[pet.pk, "front"]), follow=True)
+    assert respuesta.status_code == 200
+    assert pet.photos.count() == 1
+    avisos = [str(m) for m in get_messages(respuesta.wsgi_request)]
+    assert any("no se distingue bien una mascota" in a for a in avisos)

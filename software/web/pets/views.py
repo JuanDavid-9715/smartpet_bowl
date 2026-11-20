@@ -596,15 +596,17 @@ def pet_capture(request, pk, pose):
         messages.error(request, "La camara del plato no respondio: %s" % exc)
         return redirect("pets:photos", pk=pet.pk)
 
-    # Sin animal en el cuadro la toma no sirve: el descriptor acabaria
-    # comparando el fondo y confundiendo una mascota con la otra.
+    # El detector se usa como aviso, no como filtro. Medido con las seis fotos
+    # reales del comedero: aunque el detector no encuentra un gato (estan
+    # borrosas), el test de Lowe las separa igual (12-104 contra la propia
+    # mascota y 0-3 contra la otra). Bloquear por eso impedia volver a tomar
+    # las fotos sin ganar nada.
     if not features.detecta_animal(features.decode_bgr(datos)):
-        messages.error(
+        messages.warning(
             request,
-            "No se detecto una mascota en la toma. Acerrala al comedero, que llene "
-            "el cuadro y que se vea nitida, y vuelve a intentarlo.",
+            "La toma se guardo, pero no se distingue bien una mascota. Si el "
+            "reconocimiento falla, vuelve a tomarla mas cerca y con mas luz.",
         )
-        return redirect("pets:photos", pk=pet.pk)
 
     vector = embedding.describe_bytes(datos)
     puntos = features.encode(features.descriptors(features.decode_bgr(datos)))

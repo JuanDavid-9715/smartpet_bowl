@@ -25,9 +25,13 @@ COCO_DOG = 16
 ANIMAL_CLASSES = (COCO_CAT, COCO_DOG)
 
 ORB_FEATURES = 300
-GOOD_MATCH_DISTANCE = 50
-# Dos mascotas distintas dan menos de 10 coincidencias; la correcta pasa de 100.
-MIN_MATCHES = 15
+# Test de Lowe: la mejor coincidencia debe ser claramente mejor que la segunda.
+RATIO_TEST = 0.75
+# Medido con las seis fotos reales del comedero y el test de Lowe: la mascota
+# correcta da 12-104 coincidencias y la otra 0-3. Con 10 hay margen de sobra y
+# la toma mas pobre (la de Armi de frente, que llego con bandas de corrupcion)
+# sigue entrando.
+MIN_MATCHES = 10
 
 _MODEL_CACHE = {}
 
@@ -53,12 +57,22 @@ def _detector(path=None):
     return net
 
 
+def _blob(bgr):
+    """Entrada del detector: escala 1/255.
+
+    Comprobado contra onnxruntime con el mismo archivo: 1/255 es lo correcto
+    (con 1.0 el modelo se satura y responde "celular" al 1.00 en cualquier
+    imagen). Este ONNX no trae la normalizacion dentro.
+    """
+    return cv2.dnn.blobFromImage(bgr, 1 / 255.0, (640, 640), swapRB=True, crop=False)
+
+
 def detecta_animal(bgr, confidence=0.30) -> bool:
     """True si el detector ve un gato o un perro en la imagen."""
     net = _detector()
     if net is None:
         return True  # sin modelo no se puede juzgar: no se bloquea al usuario
-    net.setInput(cv2.dnn.blobFromImage(bgr, 1 / 255.0, (640, 640), swapRB=True, crop=False))
+    net.setInput(_blob(bgr))
     salida = net.forward()[0].T
     for fila in salida:
         clase = int(np.argmax(fila[4:]))
@@ -74,7 +88,7 @@ def crop_animal(bgr, confidence=0.30):
         return bgr
 
     alto, ancho = bgr.shape[:2]
-    blob = cv2.dnn.blobFromImage(bgr, 1 / 255.0, (640, 640), swapRB=True, crop=False)
+    blob = _blob(bgr)
     net.setInput(blob)
     salida = net.forward()[0].T
 
@@ -143,12 +157,29 @@ def combine(blobs) -> str:
 
 
 def match_score(des_a, des_b) -> int:
-    """Cuantos puntos coinciden de verdad entre dos conjuntos de descriptores."""
-    if des_a is None or des_b is None or len(des_a) == 0 or len(des_b) == 0:
+    """Cuantos puntos coinciden de verdad entre dos conjuntos de descriptores.
+
+    Se usa el test de Lowe (ratio) y no crossCheck. Medido con las seis fotos
+    reales del comedero: con crossCheck la misma mascota daba 71-88 puntos y
+    otra mascota 53-69, o sea no separaba nada, porque las dos fotos comparten
+    pared, mesa y texturas. Con el ratio 0.75 la misma mascota da 20-104 y la
+    otra 2-10.
+
+    El ratio compara la mejor coincidencia de cada punto con la segunda: si no
+    es claramente mejor, la coincidencia es ambigua y se descarta.
+    """
+    if des_a is None or des_b is None or len(des_a) < 2 or len(des_b) < 2:
         return 0
-    matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-    pares = matcher.match(des_a, des_b)
-    return sum(1 for par in pares if par.distance < GOOD_MATCH_DISTANCE)
+    matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
+    try:
+        pares = matcher.knnMatch(des_a, des_b, k=2)
+    except cv2.error:
+        return 0
+    return sum(
+        1
+        for par in pares
+        if len(par) == 2 and par[0].distance < RATIO_TEST * par[1].distance
+    )
 
 
 def decode_bgr(datos: bytes):
