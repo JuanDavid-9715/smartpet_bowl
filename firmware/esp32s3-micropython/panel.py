@@ -25,7 +25,7 @@ h1 span{color:var(--muted);font-weight:400}
 border-radius:999px;padding:4px 10px}
 
 /* --- datos importantes ------------------------------------------------ */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px 20px 0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;padding:14px 20px 0}
 @media(max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;
 padding:12px 16px;box-shadow:0 12px 32px rgba(0,0,0,.45)}
@@ -88,6 +88,10 @@ background:var(--surface-alt);color:var(--muted)}
   </div>
   <div class="kpi" id="kpi-presencia">
     <span>Presencia</span><b id="presencia">-</b><small id="presencia-nota">sin lectura</small>
+  </div>
+  <div class="kpi" id="kpi-comida">
+    <span>Comida</span><b id="cronometro" style="font-variant-numeric:tabular-nums">--:--</b>
+    <small id="cronometro-nota">sin ciclo activo</small>
   </div>
   <div class="kpi" id="kpi-motor">
     <span>Motor</span><b id="motor">-</b><small id="motor-nota">&nbsp;</small>
@@ -166,6 +170,13 @@ background:var(--surface-alt);color:var(--muted)}
 var $ = function (id) { return document.getElementById(id); };
 var imgCargada = false;
 
+function mmss(seg) {
+  var t = Math.max(0, Math.round(seg || 0));
+  var m = Math.floor(t / 60);
+  var r = t % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+}
+
 function kpi(id, estadoBueno) {
   var el = $(id);
   el.className = 'kpi' + (estadoBueno === true ? ' ok' : (estadoBueno === false ? ' err' : ''));
@@ -206,6 +217,18 @@ function pinta(s) {
     ? 'forzada desde el panel'
     : (s.presence ? 'algo a menos de 70 cm' : 'nada cerca');
   kpi('kpi-presencia', s.presence);
+
+  var crono = $('cronometro');
+  var notaCrono = $('cronometro-nota');
+  if (s.meal) {
+    crono.textContent = mmss(s.meal_elapsed);
+    notaCrono.textContent = 'faltan ' + mmss(s.meal_left);
+    kpi('kpi-comida', true);
+  } else {
+    crono.textContent = '--:--';
+    notaCrono.textContent = 'sin ciclo activo';
+    kpi('kpi-comida', null);
+  }
 
   $('motor').textContent = s.motor ? 'Girando' : 'Parado';
   $('motor-nota').textContent = s.dosing

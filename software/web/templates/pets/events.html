@@ -6,7 +6,7 @@
   <p class="muted">Lo que el comedero está viendo y pesando, y las horas a las que llama a cada mascota.</p>
 </div>
 
-<div class="grid grid--4" style="margin-top:22px">
+<div class="grid" style="margin-top:22px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
   <div class="card" style="padding:14px 18px">
     <p class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin:0">Peso en la celda</p>
     <p id="peso" style="font-size:34px;font-weight:600;letter-spacing:-.5px;margin:4px 0 0">—</p>
@@ -21,6 +21,11 @@
     <p class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin:0">Presencia</p>
     <p id="presencia" style="font-size:24px;font-weight:600;margin:6px 0 0">—</p>
     <p class="muted" id="presencia-nota" style="font-size:11px;margin:0">sin lectura</p>
+  </div>
+  <div class="card" style="padding:14px 18px">
+    <p class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin:0">Comida</p>
+    <p id="cronometro" style="font-size:24px;font-weight:600;margin:6px 0 0;font-variant-numeric:tabular-nums">--:--</p>
+    <p class="muted" id="cronometro-nota" style="font-size:11px;margin:0">sin ciclo activo</p>
   </div>
   <div class="card" style="padding:14px 18px">
     <p class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin:0">Camara</p>
@@ -177,6 +182,13 @@
   var vacioTexto = document.getElementById('vacio-texto');
   var cargado = false;
 
+  function mmss(seg) {
+    var t = Math.max(0, Math.round(seg || 0));
+    var m = Math.floor(t / 60);
+    var r = t % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+  }
+
   function pintar(s) {
     if (s.online === false) {
       vacio.style.display = 'flex';
@@ -201,6 +213,16 @@
       : (s.presence ? 'algo a menos de 70 cm' : 'nada cerca');
 
     camaraEstado.textContent = s.presence ? 'transmitiendo' : 'apagada';
+
+    var crono = document.getElementById('cronometro');
+    var notaCrono = document.getElementById('cronometro-nota');
+    if (s.meal) {
+      crono.textContent = mmss(s.meal_elapsed);
+      notaCrono.textContent = 'faltan ' + mmss(s.meal_left) + ' · ' + s.meal_pet;
+    } else {
+      crono.textContent = '--:--';
+      notaCrono.textContent = 'sin ciclo activo';
+    }
 
     if (s.presence) {
       if (!cargado) {

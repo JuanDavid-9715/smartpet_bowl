@@ -33,6 +33,8 @@ STATE = {
     "mqtt": False,
     "meal": False,
     "meal_pet": "",
+    "meal_elapsed": 0,
+    "meal_left": 0,
     "leftover": 0.0,
     "cell_ok": False,
 }
@@ -248,6 +250,10 @@ def _bucle():
                     if STATE["servo"] != config.TAPA_ABIERTA:
                         _mover_servo(config.TAPA_ABIERTA)
 
+                transcurrido = time.ticks_diff(ahora, _comida["inicio_ms"]) // 1000
+                STATE["meal_elapsed"] = transcurrido
+                STATE["meal_left"] = max(0, config.MEAL_MAX_MS // 1000 - transcurrido)
+
                 if time.ticks_diff(ahora, _comida["inicio_ms"]) > config.MEAL_MAX_MS:
                     _cerrar_comida("tiempo agotado")
         finally:
@@ -340,6 +346,8 @@ def _cerrar_comida(motivo):
         duracion = time.ticks_diff(time.ticks_ms(), _comida["inicio_ms"]) // 1000
     STATE["meal"] = False
     STATE["leftover"] = sobrante
+    STATE["meal_elapsed"] = 0
+    STATE["meal_left"] = 0
     _avisar("sobrante", {
         "gramos": sobrante,
         "mascota": _comida["pet"],
