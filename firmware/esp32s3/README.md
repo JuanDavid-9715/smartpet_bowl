@@ -54,7 +54,7 @@ verifico contra la documentacion oficial de Freenove.
 | 48 | L298N IN2 | ok (comparte el LED WS2812 de la placa) |
 | 21 | Buzzer I/O | ok |
 | 39 | HX711 SCK | ok |
-| 40 | HX711 DT | ok, con divisor 10k/20k antes del pin |
+| 40 | HX711 DT | 5 V directo: fuera de especificacion (maximo del pin 3.6 V) |
 | 1 | VL53L0X SCL | ok |
 | 2 | VL53L0X SDA | ok |
 | 41 | VL53L0X XSHUT | ok (debe ir en alto) |
@@ -87,8 +87,9 @@ Edita `include/config.h`:
 ## Avisos electricos
 
 - **HX711 alimentado a 5 V**: su salida DT queda a 5 V y un GPIO del ESP32-S3
-  tolera 3.6 V como maximo absoluto. Con un divisor 10 k / 20 k la tension baja
-  a 3.33 V. Sin divisor el pin queda fuera de especificacion.
+  tolera 3.6 V como maximo absoluto. El montaje va directo, sin divisor: queda
+  fuera de especificacion. Con un divisor 10 k / 20 k la tension bajaria a
+  3.33 V. Si el pesaje se vuelve erratico, ese es el primer sospechoso.
 - **VL53L0X a 5 V**: solo seguro si el modulo trae regulador (GY-VL53L0XV2 lo trae).
 - **Servo y motor con fuente aparte**: el SG90 pide ~700 mA de pico y el motor
   mas. La salida de 5 V del L298N no alcanza para el ESP32 con esa carga.

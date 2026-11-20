@@ -4,7 +4,7 @@ Este proyecto usa KiCad únicamente para el esquemático eléctrico. **No se fab
 
 ## Archivos
 
-- `smartpet_bowl.kicad_sch` — esquemático del comedero, hoja única A2, **rev 7**.
+- `smartpet_bowl.kicad_sch` — esquemático del comedero, hoja única A2, **rev 8**.
 - `smartpet_bowl.kicad_pro` — proyecto de KiCad.
 - `sym-lib-table` — registra la biblioteca propia del proyecto.
 - `libraries/smartpet_bowl.kicad_sym` — símbolos de los módulos.
@@ -109,8 +109,10 @@ borne es una entrada y el módulo toma los 5 V del USB.
   que esté dentro de especificación: el diodo de protección conduce y el daño se
   acumula.
 - **HX711 a 5 V**: su salida `DT` llega a 5 V y GPIO40 no admite más de 3.6 V.
-  El divisor **está dibujado en el plano**: R1 = 10 kΩ y R2 = 20 kΩ, que dejan
-  `DT` en 3.33 V. Sin esas dos resistencias el pin queda fuera de especificación.
+  El plano muestra la conexión **directa**, sin divisor, porque es lo que está
+  montado. Queda fuera de especificación del pin: el diodo de protección del
+  ESP32 conduce. Con R1 = 10 kΩ y R2 = 20 kΩ en divisor `DT` bajaría a 3.33 V.
+  Está anotado en la hoja para que la desviación no pase desapercibida.
 - **Servo**: el SG90 consume 220 mA en movimiento y **650 mA en bloqueo**. Un
   puerto USB 2.0 entrega 500 mA y el ESP32 con WiFi ya pide ~250 mA. Si la placa
   se reinicia al mover el servo, ese es el motivo: hay que darle al servo su
