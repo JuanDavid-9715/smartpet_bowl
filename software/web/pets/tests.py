@@ -361,7 +361,10 @@ def test_vivo_muestra_la_pagina(client, monkeypatch):
     user = User.objects.create_user(username="v@v.co", email="v@v.co", password="x")
     client.force_login(user)
 
-    assert client.get(reverse("pets:live")).status_code == 200
+    # la pantalla en vivo vive dentro de Eventos
+    pagina = client.get(reverse("pets:events"))
+    assert pagina.status_code == 200
+    assert b"Peso en la celda" in pagina.content
     estado = client.get(reverse("pets:live_state"))
     assert estado.status_code == 200
     assert estado.json()["grams"] == 12.3

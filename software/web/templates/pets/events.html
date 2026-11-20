@@ -3,9 +3,45 @@
 {% block app %}
 <div class="app-head">
   <h1>Eventos.</h1>
-  <p class="muted">Las horas a las que el comedero llama a cada mascota y las órdenes al equipo.</p>
-  <p style="margin-top:10px"><a class="btn btn--ghost btn--sm" href="{% url 'pets:live' %}">Ver el comedero en vivo</a></p>
+  <p class="muted">Lo que el comedero está viendo y pesando, y las horas a las que llama a cada mascota.</p>
 </div>
+
+<div class="grid grid--4" style="margin-top:22px">
+  <div class="card" style="padding:14px 18px">
+    <p class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin:0">Peso en la celda</p>
+    <p id="peso" style="font-size:34px;font-weight:600;letter-spacing:-.5px;margin:4px 0 0">—</p>
+    <p class="muted" id="crudo" style="font-size:11px;margin:0">&nbsp;</p>
+  </div>
+  <div class="card" style="padding:14px 18px">
+    <p class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin:0">Distancia</p>
+    <p id="distancia" style="font-size:24px;font-weight:600;margin:6px 0 0">—</p>
+    <p class="muted" style="font-size:11px;margin:0">sensor VL53L0X</p>
+  </div>
+  <div class="card" style="padding:14px 18px">
+    <p class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin:0">Presencia</p>
+    <p id="presencia" style="font-size:24px;font-weight:600;margin:6px 0 0">—</p>
+    <p class="muted" id="presencia-nota" style="font-size:11px;margin:0">sin lectura</p>
+  </div>
+  <div class="card" style="padding:14px 18px">
+    <p class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin:0">Camara</p>
+    <p id="camara-estado" style="font-size:24px;font-weight:600;margin:6px 0 0">apagada</p>
+    <p class="muted" style="font-size:11px;margin:0">se enciende con el sensor</p>
+  </div>
+</div>
+
+<section class="card" style="margin-top:16px">
+  <div id="visor-vacio" style="display:flex;align-items:center;gap:14px;padding:22px;border:1px dashed var(--border);border-radius:12px">
+    <span style="width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none"></span>
+    <div>
+      <p style="font-weight:600;margin:0" id="vacio-titulo">Camara apagada</p>
+      <p class="muted" style="font-size:13px;margin:2px 0 0" id="vacio-texto">
+        Se enciende sola cuando el sensor detecta algo a menos de 70 cm
+      </p>
+    </div>
+  </div>
+  <img id="video" alt="camara del comedero"
+       style="display:none;width:100%;border-radius:12px;background:#04020a">
+</section>
 
 <div class="grid grid--2" style="margin-top:24px;align-items:start">
 
@@ -45,6 +81,9 @@
 
   <section class="card">
     <h3>Comederos</h3>
+    <p class="muted" style="font-size:12px;margin:-6px 0 8px">
+      Equipo: <span class="mono">{{ device }}</span>
+    </p>
     {% if comederos %}
       {% for feeder in comederos %}
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--hairline)">
@@ -117,4 +156,76 @@
     <p class="muted">Agrega una mascota para poder programar sus comidas.</p>
   </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var peso = document.getElementById('peso');
+  if (!peso) { return; }
+  var crudo = document.getElementById('crudo');
+  var distancia = document.getElementById('distancia');
+  var presencia = document.getElementById('presencia');
+  var nota = document.getElementById('presencia-nota');
+  var camaraEstado = document.getElementById('camara-estado');
+  var video = document.getElementById('video');
+  var vacio = document.getElementById('visor-vacio');
+  var vacioTitulo = document.getElementById('vacio-titulo');
+  var vacioTexto = document.getElementById('vacio-texto');
+  var cargado = false;
+
+  function pintar(s) {
+    if (s.online === false) {
+      vacio.style.display = 'flex';
+      video.style.display = 'none';
+      vacioTitulo.textContent = 'Comedero sin respuesta';
+      vacioTexto.textContent = 'Revisa que el ESP32 esté encendido en la misma red.';
+      camaraEstado.textContent = 'sin conexión';
+      return;
+    }
+
+    peso.textContent = s.cell_ok ? s.grams.toFixed(1) + ' g' : '—';
+    crudo.innerHTML = s.cell_ok ? 'crudo ' + s.raw : '&nbsp;';
+
+    if (s.sensor_ok && s.distance >= 0 && s.distance < 8000) {
+      distancia.textContent = s.distance + ' mm';
+    } else {
+      distancia.textContent = s.sensor_ok ? 'sin objetivo' : '—';
+    }
+
+    presencia.textContent = s.presence ? 'Sí' : 'No';
+    nota.textContent = s.forced ? 'forzada desde el panel'
+      : (s.presence ? 'algo a menos de 70 cm' : 'nada cerca');
+
+    camaraEstado.textContent = s.presence ? 'transmitiendo' : 'apagada';
+
+    if (s.presence) {
+      if (!cargado) {
+        video.src = '/app/eventos/video/?t=' + Date.now();
+        cargado = true;
+      }
+      video.style.display = 'block';
+      vacio.style.display = 'none';
+    } else {
+      video.style.display = 'none';
+      if (cargado) { video.removeAttribute('src'); cargado = false; }
+      vacio.style.display = 'flex';
+      vacioTitulo.textContent = 'Camara apagada';
+      vacioTexto.textContent = s.sensor_ok
+        ? 'Se enciende sola cuando algo entra a menos de 70 cm'
+        : 'El sensor de distancia no está respondiendo';
+    }
+  }
+
+  function pedir() {
+    fetch('/app/eventos/estado/', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(pintar)
+      .catch(function () { pintar({ online: false }); });
+  }
+
+  setInterval(pedir, 1000);
+  pedir();
+})();
+</script>
 {% endblock %}

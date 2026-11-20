@@ -398,7 +398,7 @@ def events(request):
     return render(
         request,
         "pets/events.html",
-        {"pets": lista, "comederos": comederos},
+        {"pets": lista, "comederos": comederos, "device": _dispositivo()},
     )
 
 
@@ -428,12 +428,6 @@ def feeder_delete(request, pk):
 
 def _dispositivo():
     return getattr(settings, "DEVICE_URL", "")
-
-
-@login_required
-def live(request):
-    """Pantalla para ver el peso y la camara del comedero tal como estan ahora."""
-    return render(request, "pets/live.html", {"device": _dispositivo()})
 
 
 @login_required
