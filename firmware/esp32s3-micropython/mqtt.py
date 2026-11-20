@@ -16,6 +16,8 @@ import time
 
 from umqtt.simple import MQTTClient
 
+import network
+
 import config
 import hardware
 
@@ -74,6 +76,16 @@ def _bucle(host):
                 _cliente.set_callback(_al_recibir)
                 _cliente.connect()
                 _cliente.subscribe(TEMA)
+                try:
+                    ip = network.WLAN(network.STA_IF).ifconfig()[0]
+                    _cliente.publish(
+                        b"comedero/" + config.FEEDER_CODE.encode() + b"/ip",
+                        json.dumps({"ip": ip}),
+                        retain=True,
+                    )
+                    print("IP publicada:", ip)
+                except Exception as error:  # noqa: BLE001
+                    print("no pude publicar la IP:", error)
                 hardware.set_mqtt(True)
                 print("MQTT conectado a", host)
             _cliente.check_msg()

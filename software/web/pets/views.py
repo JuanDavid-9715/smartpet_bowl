@@ -445,6 +445,16 @@ def feeder_delete(request, pk):
 # --- vista en vivo: peso y camara del ESP32 -------------------------------
 
 def _dispositivo():
+    """IP del comedero: la que anota la Raspberry, o la del .env como respaldo."""
+    from pathlib import Path
+
+    anotada = Path(settings.BASE_DIR).parent / ".device-ip"
+    try:
+        ip = anotada.read_text(encoding="utf-8").strip()
+    except OSError:
+        ip = ""
+    if ip:
+        return "http://" + ip
     return getattr(settings, "DEVICE_URL", "")
 
 

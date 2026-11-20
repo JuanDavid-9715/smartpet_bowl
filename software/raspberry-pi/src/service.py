@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+from pathlib import Path
 import threading
 import time
 import uuid
@@ -21,6 +22,7 @@ PLAN_TTL = 300
 class FeedingService:
     def __init__(self):
         self.source = FrameSource(config.STREAM_URL)
+        self._board_ip = ""
         self.recognizer = PetRecognizer(config.PET_PHOTOS_DIR)
         self.mqtt = MqttClient(self.handle_message)
         self.sessions: dict[str, feeding.Session] = {}
@@ -77,6 +79,8 @@ class FeedingService:
             self.on_weight(body)
         elif name == "sobrante":
             self.on_leftover(body)
+        elif name == "ip":
+            self._anotar_ip(str(body.get("ip", "")))
         elif name == "estado":
             log.info("Estado del comedero: %s", body)
 
@@ -127,6 +131,19 @@ class FeedingService:
             })
         storage.save(storage.payload([event], alerts))
         log.info("%s: comio %.1f de %.1f g (%s)", pet, session.eaten, session.served, session.status)
+
+    def _anotar_ip(self, ip: str) -> None:
+        """La placa cambia de IP con el hotspot: se sigue sola."""
+        if not ip or ip == self._board_ip:
+            return
+        self._board_ip = ip
+        self.source = FrameSource(f"http://{ip}/capture?size=vga")
+        destino = Path(__file__).resolve().parents[2] / ".device-ip"
+        try:
+            destino.write_text(ip, encoding="utf-8")
+        except OSError as exc:
+            log.warning("No pude anotar la IP: %s", exc)
+        log.info("Comedero en %s", ip)
 
     # --- horario ----------------------------------------------------------
     def scheduler(self) -> None:

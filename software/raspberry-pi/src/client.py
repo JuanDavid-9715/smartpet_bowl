@@ -23,6 +23,7 @@ class MqttClient:
     def _on_connect(self, client, userdata, flags, reason_code, properties=None):
         log.info("MQTT conectado (%s)", reason_code)
         client.subscribe(f"{config.TOPIC_EVENT}/#")
+        client.subscribe(f"comedero/{config.FEEDER_CODE}/ip")
         client.publish(config.TOPIC_STATE, json.dumps({"en_linea": True}), retain=True)
 
     def _on_message(self, client, userdata, message):
