@@ -27,7 +27,7 @@ PAGE = """<!doctype html>
   header{padding:14px 18px;font-size:15px;letter-spacing:.3px;color:#9aa7b4}
   header b{color:#e6edf3;font-weight:600}
   main{padding:0 18px 18px}
-  img{width:100%;max-width:960px;border-radius:10px;display:block;background:#000}
+  img{width:100%;max-width:1280px;height:auto;border-radius:10px;display:block;background:#000}
   p{margin:10px 0 0;font-size:13px;color:#8b98a5}
   a{color:#4aa3ff}
 </style></head>
@@ -117,7 +117,7 @@ def _stream(sock, camara):
         finally:
             camara.free_buffer()
         frames += 1
-        if frames % 30 == 0:
+        if frames % 100 == 0:
             gc.collect()
 
 
@@ -148,6 +148,12 @@ def serve(ip):
             client, _ = server.accept()
         except OSError:
             continue
+
+        # Sin esto, Nagle retiene cada cuadro hasta 200 ms y el video se ve cortado.
+        try:
+            client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        except OSError:
+            pass
 
         try:
             path = _path(client)

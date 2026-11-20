@@ -21,9 +21,12 @@ def frame(cam, retries=3):
     """Captura un cuadro. Hay que liberarlo con cam.free_buffer()."""
     for _ in range(retries):
         try:
-            return cam.capture()
+            buf = cam.capture()
         except OSError:
-            time.sleep_ms(20)
+            buf = None
+        if buf is not None:
+            return buf
+        time.sleep_ms(20)
     raise OSError("camara: sin cuadro disponible")
 
 

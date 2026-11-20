@@ -21,8 +21,8 @@ CAMERA = {
     "powerdown_pin": -1,
     "reset_pin": -1,
     "pixel_format": PixelFormat.JPEG,
-    "frame_size": FrameSize.VGA,
-    "jpeg_quality": 12,
+    "frame_size": FrameSize.HD,      # 1280x720
+    "jpeg_quality": 85,              # es un porcentaje: mas alto = mejor
     "fb_count": 2,
 }
 
