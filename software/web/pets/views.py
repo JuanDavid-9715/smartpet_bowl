@@ -360,7 +360,14 @@ def events(request):
 
         elif accion == "servir":
             pet = pets.filter(pk=request.POST.get("pet")).first()
-            comedero = Feeder.objects.filter(owner=request.user).first()
+            # La orden va al plato de ESA mascota; si no tiene, al primero del
+            # dueno. Con (.first()) a secas, con dos platos la orden se iba al
+            # equivocado y la Raspberry nunca la veia.
+            comedero = None
+            if pet is not None and pet.feeder_id:
+                comedero = pet.feeder
+            else:
+                comedero = Feeder.objects.filter(owner=request.user).first()
             if pet is None:
                 messages.error(request, "Elige una mascota.")
             elif comedero is None:

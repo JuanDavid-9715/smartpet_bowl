@@ -389,3 +389,22 @@ def test_vivo_sin_comedero_avisa(client, monkeypatch):
     respuesta = client.get(reverse("pets:live_state"))
     assert respuesta.status_code == 502
     assert respuesta.json()["online"] is False
+
+
+@pytest.mark.django_db
+def test_servir_ahora_usa_el_plato_de_la_mascota(client):
+    """Con dos platos, la orden debe ir al de la mascota, no al primero."""
+    from django.urls import reverse
+
+    from pets.models import Feeder, FeederCommand
+
+    User = get_user_model()
+    user = User.objects.create_user(username="x@x.co", email="x@x.co", password="x")
+    Feeder.objects.create(owner=user, code="SPB-07")
+    propio = Feeder.objects.create(owner=user, code="SPB-42")
+    pet = Pet.objects.create(owner=user, name="Jiru", species="cat", weight_kg=10,
+                             meals_per_day=2, target_grams=131.2, feeder=propio)
+    client.force_login(user)
+    client.post(reverse("pets:events"), {"accion": "servir", "pet": pet.pk})
+    assert FeederCommand.objects.filter(feeder=propio, action="feed").exists()
+    assert not FeederCommand.objects.filter(feeder__code="SPB-07").exists()

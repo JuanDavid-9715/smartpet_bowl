@@ -65,10 +65,12 @@ def _bucle(host):
                 _cliente.set_callback(_al_recibir)
                 _cliente.connect()
                 _cliente.subscribe(TEMA)
+                hardware.set_mqtt(True)
                 print("MQTT conectado a", host)
             _cliente.check_msg()
         except Exception as error:  # noqa: BLE001 - reintenta sin tumbar el panel
             print("MQTT:", error)
+            hardware.set_mqtt(False)
             _cliente = None
             time.sleep(3)
         time.sleep_ms(100)

@@ -30,6 +30,7 @@ STATE = {
     "servo": config.TAPA_CERRADA,
     "duty": config.MOTOR_DUTY,
     "sensor_ok": False,
+    "mqtt": False,
     "cell_ok": False,
 }
 
@@ -257,6 +258,14 @@ def init():
 
 
 # ----------------------------------------------------------------- comandos
+
+def set_mqtt(conectado):
+    _lock.acquire()
+    try:
+        STATE["mqtt"] = bool(conectado)
+    finally:
+        _lock.release()
+
 
 def set_forced(activo):
     _lock.acquire()
