@@ -12,6 +12,8 @@ Rutas:
   /api/dose              {"pet": "Jiru", "grams": 65.6} llena hasta el objetivo
   /api/duty              {"percent": 4} velocidad del motor
   /api/motor             {"on": true|false}
+  /api/reset             motor parado, tapa cerrada y sin dosificar
+  /api/reboot            reinicia la placa
   /api/servo             {"angle": 0..50}
   /api/buzzer            {"pet": "Jiru"} toca el nombre en morse, o {"times": 2}
 """
@@ -206,7 +208,18 @@ def _api(sock, path, body):
     if path.startswith("/api/presence"):
         return _json(sock, {"forced": hardware.set_forced(datos.get("on"))})
     if path.startswith("/api/dose"):
-        return _json(sock, {"target": hardware.dose(datos.get("pet", ""), datos.get("grams", 0))})
+        objetivo = hardware.dose(datos.get("pet", ""), datos.get("grams", 0))
+        if datos.get("open"):
+            hardware.servo(config.TAPA_ABIERTA)
+        return _json(sock, {"target": objetivo})
+    if path.startswith("/api/reset"):
+        hardware.reset()
+        return _json(sock, hardware.snapshot())
+    if path.startswith("/api/reboot"):
+        _json(sock, {"reboot": True})
+        time.sleep_ms(400)
+        import machine
+        machine.reset()
     if path.startswith("/api/duty"):
         return _json(sock, {"duty": hardware.set_duty(datos.get("percent", config.MOTOR_DUTY))})
     if path.startswith("/api/motor"):

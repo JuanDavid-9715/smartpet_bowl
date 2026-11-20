@@ -325,21 +325,63 @@ def test_eventos_muestra_la_pagina(client):
 
 
 @pytest.mark.django_db
-def test_eventos_servir_ahora_crea_orden(client):
+def test_eventos_servir_ahora_va_al_equipo(client, monkeypatch):
+    """Servir ahora habla directo con el ESP32, sin platos ni MQTT."""
     from django.urls import reverse
 
-    from pets.models import Feeder, FeederCommand
+    from pets import views
+    from pets.models import FeederCommand
+
+    llamadas = []
+
+    class Falsa:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {}
+
+    monkeypatch.setattr(views.requests, "post",
+                        lambda url, **k: llamadas.append((url, k.get("json"))) or Falsa())
 
     User = get_user_model()
     user = User.objects.create_user(username="s@s.co", email="s@s.co", password="x")
-    plato = Feeder.objects.create(owner=user, code="SPB-42")
+    # Sin plato a proposito: el boton no debe depender de eso.
     pet = Pet.objects.create(owner=user, name="Jiru", species="cat", weight_kg=10,
-                             meals_per_day=2, target_grams=131.2, feeder=plato)
+                             meals_per_day=2, target_grams=131.2)
     client.force_login(user)
     client.post(reverse("pets:events"), {"accion": "servir", "pet": pet.pk})
-    orden = FeederCommand.objects.get(feeder=plato, action="feed")
-    assert orden.target == "Jiru"
-    assert float(orden.grams) == pytest.approx(65.6, abs=0.1)
+
+    assert llamadas and llamadas[0][0].endswith("/api/dose")
+    assert llamadas[0][1]["pet"] == "Jiru"
+    assert llamadas[0][1]["grams"] == pytest.approx(65.6, abs=0.1)
+    assert not FeederCommand.objects.exists()
+
+
+@pytest.mark.django_db
+def test_eventos_reinicia_el_equipo(client, monkeypatch):
+    from django.urls import reverse
+
+    from pets import views
+
+    rutas = []
+
+    class Falsa:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {}
+
+    monkeypatch.setattr(views.requests, "post",
+                        lambda url, **k: rutas.append(url) or Falsa())
+    User = get_user_model()
+    user = User.objects.create_user(username="r@r.co", email="r@r.co", password="x")
+    client.force_login(user)
+    client.post(reverse("pets:events"), {"accion": "reset"})
+    client.post(reverse("pets:events"), {"accion": "reboot"})
+    assert any(r.endswith("/api/reset") for r in rutas)
+    assert any(r.endswith("/api/reboot") for r in rutas)
 
 
 @pytest.mark.django_db
@@ -391,20 +433,3 @@ def test_vivo_sin_comedero_avisa(client, monkeypatch):
     assert respuesta.json()["online"] is False
 
 
-@pytest.mark.django_db
-def test_servir_ahora_usa_el_plato_de_la_mascota(client):
-    """Con dos platos, la orden debe ir al de la mascota, no al primero."""
-    from django.urls import reverse
-
-    from pets.models import Feeder, FeederCommand
-
-    User = get_user_model()
-    user = User.objects.create_user(username="x@x.co", email="x@x.co", password="x")
-    Feeder.objects.create(owner=user, code="SPB-07")
-    propio = Feeder.objects.create(owner=user, code="SPB-42")
-    pet = Pet.objects.create(owner=user, name="Jiru", species="cat", weight_kg=10,
-                             meals_per_day=2, target_grams=131.2, feeder=propio)
-    client.force_login(user)
-    client.post(reverse("pets:events"), {"accion": "servir", "pet": pet.pk})
-    assert FeederCommand.objects.filter(feeder=propio, action="feed").exists()
-    assert not FeederCommand.objects.filter(feeder__code="SPB-07").exists()

@@ -359,28 +359,40 @@ def events(request):
                 messages.success(request, "Horario eliminado.")
 
         elif accion == "servir":
+            # Va directo al equipo: no depende del plato, ni de MQTT, ni de la
+            # Raspberry. Es una prueba de hardware.
             pet = pets.filter(pk=request.POST.get("pet")).first()
-            # La orden va al plato de ESA mascota; si no tiene, al primero del
-            # dueno. Con (.first()) a secas, con dos platos la orden se iba al
-            # equivocado y la Raspberry nunca la veia.
-            comedero = None
-            if pet is not None and pet.feeder_id:
-                comedero = pet.feeder
-            else:
-                comedero = Feeder.objects.filter(owner=request.user).first()
             if pet is None:
                 messages.error(request, "Elige una mascota.")
-            elif comedero is None:
-                messages.error(request, "No hay comedero vinculado.")
             else:
                 comidas = pet.meals_per_day or 2
                 gramos = round(float(pet.target_grams or 0) / comidas, 1)
-                FeederCommand.objects.create(
-                    feeder=comedero, action="feed", target=pet.name, grams=gramos
-                )
+                try:
+                    _device_post(
+                        "/api/dose",
+                        {"pet": pet.name, "grams": gramos, "open": True},
+                    )
+                    messages.success(
+                        request, "Sirviendo %s g a %s en el comedero." % (gramos, pet.name)
+                    )
+                except requests.RequestException as exc:
+                    messages.error(request, "El comedero no respondio: %s" % exc)
+
+        elif accion == "reset":
+            try:
+                _device_post("/api/reset")
                 messages.success(
-                    request, "Orden para servir %s g a %s enviada." % (gramos, pet.name)
+                    request, "Comedero en reposo: motor parado, tapa cerrada."
                 )
+            except requests.RequestException as exc:
+                messages.error(request, "El comedero no respondio: %s" % exc)
+
+        elif accion == "reboot":
+            try:
+                _device_post("/api/reboot")
+                messages.success(request, "Reiniciando la placa. Tarda unos segundos.")
+            except requests.RequestException as exc:
+                messages.error(request, "El comedero no respondio: %s" % exc)
 
         elif accion == "orden":
             comedero = Feeder.objects.filter(
@@ -435,6 +447,13 @@ def feeder_delete(request, pk):
 
 def _dispositivo():
     return getattr(settings, "DEVICE_URL", "")
+
+
+def _device_post(ruta, datos=None):
+    """Habla directo con el ESP32. Se usa en el panel de pruebas."""
+    respuesta = requests.post(_dispositivo() + ruta, json=datos or {}, timeout=6)
+    respuesta.raise_for_status()
+    return respuesta.json()
 
 
 @login_required

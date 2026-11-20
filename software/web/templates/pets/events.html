@@ -80,34 +80,37 @@
   </section>
 
   <section class="card">
-    <h3>Comederos</h3>
-    <p class="muted" style="font-size:12px;margin:-6px 0 8px">
-      Equipo: <span class="mono">{{ device }}</span>
+    <h3>Equipo</h3>
+    <p class="muted" style="font-size:12px;margin:-6px 0 12px">
+      <span class="mono">{{ device }}</span>
     </p>
+    <p class="muted" style="font-size:13px;margin:0 0 14px">
+      Los botones de esta página hablan directo con el ESP32: no pasan por la
+      Raspberry ni por MQTT, así que sirven para probar el hardware sin esperar.
+    </p>
+    <div class="row">
+      <form method="post" style="margin:0">
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="reset">
+        <button class="btn btn--ghost btn--sm" type="submit">Parar y cerrar</button>
+      </form>
+      <form method="post" style="margin:0">
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="reboot">
+        <button class="btn btn--ghost btn--sm" type="submit">Reiniciar placa</button>
+      </form>
+    </div>
     {% if comederos %}
+      <p class="muted" style="font-size:12px;margin:16px 0 4px;text-transform:uppercase;letter-spacing:.1em">Comederos</p>
       {% for feeder in comederos %}
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--hairline)">
-          <div>
-            <p style="font-weight:600">{{ feeder.code }}</p>
-            <p class="muted" style="font-size:12px">
-              {% for pet in feeder.pets.all %}{{ pet.name }}{% if not forloop.last %}, {% endif %}{% empty %}sin mascota{% endfor %}
-            </p>
-          </div>
-          <form method="post" style="margin:0">
-            {% csrf_token %}
-            <input type="hidden" name="accion" value="orden">
-            <input type="hidden" name="feeder" value="{{ feeder.pk }}">
-            <input type="hidden" name="action" value="restart">
-            <button class="btn btn--ghost btn--sm" type="submit">Reiniciar</button>
-          </form>
-        </div>
+        <p style="font-size:13px;margin:2px 0">
+          <b>{{ feeder.code }}</b>
+          <span class="muted">
+            {% for pet in feeder.pets.all %}{{ pet.name }}{% if not forloop.last %}, {% endif %}{% empty %}sin mascota{% endfor %}
+          </span>
+        </p>
       {% endfor %}
-    {% else %}
-      <p class="muted">Todavía no hay comederos registrados.</p>
     {% endif %}
-    <p class="muted" style="font-size:12px;margin-top:14px">
-      La Raspberry recoge estas órdenes cada 20 segundos y las publica por MQTT.
-    </p>
   </section>
 </div>
 

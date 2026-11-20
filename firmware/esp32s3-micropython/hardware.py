@@ -259,6 +259,25 @@ def init():
 
 # ----------------------------------------------------------------- comandos
 
+def reset():
+    """Deja el equipo en reposo: motor parado, tapa cerrada y sin dosificar.
+
+    Es el boton para desatascar la prueba: si el motor quedo girando o la tapa
+    abierta esperando una mascota que no va a venir, esto lo devuelve a cero.
+    """
+    _lock.acquire()
+    try:
+        STATE["dosing"] = False
+        STATE["forced"] = False
+        STATE["pet"] = ""
+        STATE["target"] = 0.0
+        _motor(False)
+        _mover_servo(config.TAPA_CERRADA)
+    finally:
+        _lock.release()
+    return True
+
+
 def set_mqtt(conectado):
     _lock.acquire()
     try:
