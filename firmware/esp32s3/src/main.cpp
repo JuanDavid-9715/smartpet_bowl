@@ -105,7 +105,9 @@ static float dosificar(float gramos) {
 
   digitalWrite(PIN_MOTOR_IN1, HIGH);
   digitalWrite(PIN_MOTOR_IN2, LOW);
+#if PIN_MOTOR_ENA >= 0
   analogWrite(PIN_MOTOR_ENA, MOTOR_PWM);
+#endif
   delay(MOTOR_ARRANQUE_MS);
 
   float actual = referencia;
@@ -114,11 +116,12 @@ static float dosificar(float gramos) {
     if (actual < 0) continue;
     float falta = objetivo - actual;
     if (falta <= PESO_TOLERANCIA_G) break;
-    analogWrite(PIN_MOTOR_ENA, falta < 15 ? MOTOR_PWM_FINO : MOTOR_PWM);
     delay(60);
   }
 
+#if PIN_MOTOR_ENA >= 0
   analogWrite(PIN_MOTOR_ENA, 0);
+#endif
   digitalWrite(PIN_MOTOR_IN1, LOW);
   delay(250);
 
@@ -250,13 +253,15 @@ static void conectarMqtt() {
 void setup() {
   Serial.begin(115200);
   delay(200);
-  pinMode(PIN_MOTOR_ENA, OUTPUT);
   pinMode(PIN_MOTOR_IN1, OUTPUT);
   pinMode(PIN_MOTOR_IN2, OUTPUT);
-  pinMode(PIN_BUZZER, OUTPUT);
+#if PIN_MOTOR_ENA >= 0
+  pinMode(PIN_MOTOR_ENA, OUTPUT);
   analogWrite(PIN_MOTOR_ENA, 0);
+#endif
+  pinMode(PIN_BUZZER, OUTPUT);
 
-  tapa.attach(PIN_SERVO_TAPA, 500, 2400);
+  tapa.attach(PIN_SERVO, 500, 2400);
   cerrarTapa();
 
   scale.begin(PIN_HX711_DT, PIN_HX711_SCK);
@@ -265,9 +270,15 @@ void setup() {
   scale.tare(20);
   pesoBase = leerPeso(12);
 
-  Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
+  // XSHUT del VL53L0X debe estar en alto: si no, el sensor queda apagado.
+  pinMode(PIN_TOF_XSHUT, OUTPUT);
+  digitalWrite(PIN_TOF_XSHUT, HIGH);
+  delay(20);
+
+  Wire.begin(PIN_TOF_SDA, PIN_TOF_SCL);
+  Wire.setClock(100000);
   if (!tof.begin()) {
-    Serial.println("VL53L0X no responde");
+    Serial.println("VL53L0X no responde en SDA=1 SCL=2");
   }
 
   if (!iniciarCamara()) {

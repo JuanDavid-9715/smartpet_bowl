@@ -35,14 +35,58 @@ El ESP32 sirve MJPEG por HTTP en el puerto **81**:
 
 La Raspberry se conecta cuando hay presencia. Es **pull**, no push: el ESP32 no necesita conocer la IP de la Pi.
 
+## Placa y cableado real
+
+**Freenove ESP32-S3-WROOM CAM** (ESP32-S3-WROOM-1). El pinout de camara se
+verifico contra la documentacion oficial de Freenove.
+
+| GPIO | Conectado a | Estado |
+|---|---|---|
+| 4 | Camara SIOD | ok |
+| 5 | Camara SIOC | ok |
+| 6 | Camara VSYNC | ok |
+| 7 | Camara HREF | ok |
+| 8, 9, 10, 11, 12, 13 | Camara Y4, Y3, Y5, Y2, Y6, PCLK | ok |
+| 15 | Camara XCLK | ok |
+| 16, 17, 18 | Camara Y9, Y8, Y7 | ok |
+| 14 | L298N IN1 | ok |
+| **38** | **L298N IN2** | **FALTA CABLEAR** |
+| 21 | Buzzer I/O | ok |
+| 47 | Servo SG90 PWM | ok |
+| 39 | HX711 SCK | ok |
+| 40 | HX711 DT | ok |
+| 1 | VL53L0X SCL | ok |
+| 2 | VL53L0X SDA | ok |
+| 41 | VL53L0X XSHUT | ok (debe ir en alto) |
+| 42 | VL53L0X GPIO1 | ok (no se usa) |
+| 35, 36, 37 | PSRAM interno | **PROHIBIDO USAR** |
+
+**38, 39 y 40 son tambien SD_CMD, SD_CLK y SD_DATA** en esta placa. Como el motor
+y la celda de carga los usan, **no se puede insertar la tarjeta SD** al mismo
+tiempo: el bus se comparte y el pesaje se corrompe. La captura de video va por
+WiFi, no hace falta la SD.
+
+**ENA del L298N: puenteado a 5 V con el jumper.** Asi el motor gira a tope y no
+hace falta un GPIO. La dosificacion la controla la celda de carga, no la
+velocidad. Si mas adelante quieres regular velocidad, cambia `PIN_MOTOR_ENA`
+de `-1` a un GPIO libre y quita el jumper.
+
 ## Antes de compilar
 
 Edita `include/config.h`:
 
 - `WIFI_SSID`, `WIFI_PASS`, `MQTT_HOST`, `FEEDER_CODE`.
-- **Los pines de la camara dependen de la placa.** Los de `config.h` son de referencia; verifica contra el pinout de tu modulo ESP32-S3.
 - `scale.set_scale(-430.0)` en `main.cpp` es un valor inicial. **Se calibra en el montaje** con un peso conocido.
 - `PRESENCIA_MM` (700) y `PRESENCIA_MS` (1500) se ajustan segun donde quede el sensor.
+- El servo es un **SG90**, no el MG996R del diseno. Si no levanta la tapa, hay que volver al MG996R.
+
+## Avisos electricos
+
+- **HX711 alimentado a 5 V**: su salida DT queda a 5 V y el ESP32 tolera 3.6 V.
+  Alimenta el HX711 a **3.3 V** o pon un divisor en DT.
+- **VL53L0X a 5 V**: solo seguro si el modulo trae regulador (GY-VL53L0XV2 lo trae).
+- **Servo y motor con fuente aparte**: el SG90 pide ~700 mA de pico y el motor
+  mas. La salida de 5 V del L298N no alcanza para el ESP32 con esa carga.
 
 ## Compilar y subir
 
