@@ -489,7 +489,7 @@ def live_state(request):
     if not settings.IS_LOCAL:
         raise Http404("Sin equipo local.")
     try:
-        respuesta = requests.get(_dispositivo() + "/api/state", timeout=4)
+        respuesta = requests.get(_dispositivo() + "/api/state", timeout=(3, 8))
         respuesta.raise_for_status()
         return JsonResponse(respuesta.json())
     except requests.RequestException as exc:
@@ -502,7 +502,7 @@ def live_video(request):
     if not settings.IS_LOCAL:
         raise Http404("Sin equipo local.")
     try:
-        estado = requests.get(_dispositivo() + "/api/state", timeout=4).json()
+        estado = requests.get(_dispositivo() + "/api/state", timeout=(3, 8)).json()
     except (requests.RequestException, ValueError):
         raise Http404("comedero sin respuesta")
 
@@ -539,10 +539,24 @@ def live_video(request):
 
 # --- registrar las tomas con la camara del plato --------------------------
 
-def _foto_del_equipo() -> bytes:
-    respuesta = requests.get(_dispositivo() + "/capture?size=vga", timeout=8)
-    respuesta.raise_for_status()
-    return respuesta.content
+def _foto_del_equipo(ancho=15) -> bytes:
+    """Pide una foto al ESP32.
+
+    El enlace del comedor es irregular: la misma peticion tarda entre 0,2 y 5 s.
+    Se reintenta una vez y se da mas margen que antes, para que un pico de
+    latencia no se convierta en un error en la cara del usuario.
+    """
+    ultimo = None
+    for _ in range(2):
+        try:
+            respuesta = requests.get(
+                _dispositivo() + "/capture?size=vga", timeout=(4, ancho)
+            )
+            respuesta.raise_for_status()
+            return respuesta.content
+        except requests.RequestException as exc:
+            ultimo = exc
+    raise ultimo
 
 
 @login_required
