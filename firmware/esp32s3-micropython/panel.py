@@ -109,7 +109,13 @@ background:var(--surface-alt);color:var(--muted)}
       </div>
       <img id="img" alt="video" style="display:none">
     </div>
-    <div class="row" style="margin-top:12px">
+    <div class="row" style="margin-top:10px">
+      <span class="mini" style="margin:0">Calidad</span>
+      <button id="cal-fluido" class="primary">Fluido</button>
+      <button id="cal-nitido">Nitido</button>
+      <span class="mini" style="margin:0" id="cal-nota">320x240</span>
+    </div>
+    <div class="row" style="margin-top:10px">
       <button id="forzar">Forzar presencia</button>
       <button id="soltar">Soltar</button>
       <span class="tag" id="tag-presencia">ausente</span>
@@ -256,7 +262,7 @@ function pinta(s) {
   var img = $('img');
   var visor = $('visor');
   if (s.presence) {
-    if (!imgCargada) { img.src = '/stream?t=' + Date.now(); imgCargada = true; }
+    if (!imgCargada) { img.src = '/stream?size=' + calidad + '&t=' + Date.now(); imgCargada = true; }
     img.style.display = 'block';
     visor.className = 'visor';
     $('off-titulo').parentNode.style.display = 'none';
@@ -283,6 +289,23 @@ function estado() {
       $('conn').style.color = 'var(--err)';
     });
 }
+
+var calidad = 'qvga';
+
+function cambiarCalidad(nueva) {
+  calidad = nueva;
+  imgCargada = false;
+  document.getElementById('cal-nota').textContent = nueva === 'vga' ? '640x480' : '320x240';
+  document.getElementById('cal-fluido').className = nueva === 'qvga' ? 'primary' : '';
+  document.getElementById('cal-nitido').className = nueva === 'vga' ? 'primary' : '';
+  if (document.getElementById('img').style.display === 'block') {
+    document.getElementById('img').src = '/stream?size=' + nueva + '&t=' + Date.now();
+    imgCargada = true;
+  }
+}
+
+document.getElementById('cal-fluido').onclick = function () { cambiarCalidad('qvga'); };
+document.getElementById('cal-nitido').onclick = function () { cambiarCalidad('vga'); };
 
 function cmd(ruta, cuerpo) {
   fetch(ruta, {
