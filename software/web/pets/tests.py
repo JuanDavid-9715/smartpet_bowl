@@ -209,3 +209,29 @@ def test_subir_fotos_calcula_vector(client, tmp_path, settings):
     assert PetPhoto.objects.filter(pet=pet).count() == 2
     pet.refresh_from_db()
     assert len(pet.centroid) == embedding.DIMENSIONS
+
+
+def test_vision_ida_y_vuelta():
+    """Los puntos viajan como texto y deben volver identicos."""
+    import numpy as np
+    from pets import features as vision
+
+    puntos = np.array([[i % 256] * 32 for i in range(5)], dtype=np.uint8)
+    texto = vision.encode(puntos)
+    vuelta = vision.decode(texto)
+    assert vuelta is not None
+    assert (vuelta == puntos).all()
+    assert vision.decode("") is None
+    assert vision.decode("basura") is None
+
+
+def test_vision_compara():
+    """La misma imagen coincide mucho mas consigo misma que con ruido."""
+    import numpy as np
+    from pets import features as vision
+
+    rng = np.random.default_rng(7)
+    a = rng.integers(0, 255, (40, 32), dtype=np.uint8)
+    b = rng.integers(0, 255, (40, 32), dtype=np.uint8)
+    assert vision.match_score(a, a) > vision.match_score(a, b)
+    assert vision.combine([vision.encode(a), vision.encode(a)]) != ""

@@ -7,7 +7,7 @@ import threading
 import time
 import uuid
 
-from . import config, descriptor, feeding, storage
+from . import config, feeding, features, storage
 from .client import MqttClient
 from .recognizer import PetRecognizer
 from .vision import FrameSource
@@ -28,8 +28,8 @@ class FeedingService:
         self._plan: dict = {"pets": []}
         self._plan_at = 0.0
         self._stop = threading.Event()
-        log.info("Descriptor: histograma HSV de %d dims · mascotas: %s",
-                 descriptor.DIMENSIONS, ", ".join(self.recognizer.pets) or "ninguna")
+        log.info("Reconocimiento: ORB %d puntos · mascotas: %s",
+                 features.ORB_FEATURES, ", ".join(self.recognizer.pets) or "ninguna")
 
     # --- plan -------------------------------------------------------------
     def plan(self) -> list[dict]:

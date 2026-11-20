@@ -10,7 +10,7 @@ from telemetry.models import Alert, MealEvent
 
 from . import nutrition
 from .forms import PetForm, PetPhotoForm
-from . import embedding
+from . import embedding, features
 from .models import Feeder, FeederCommand, Pet, PetPhoto
 
 
@@ -152,13 +152,17 @@ def pet_photos(request, pk):
                 continue
             data = image.read()
             vector = embedding.describe_bytes(data)
+            puntos = features.encode(features.descriptors(features.decode_bgr(data)))
             image.seek(0)
-            PetPhoto.objects.create(pet=pet, image=image, pose=pose, embedding=vector)
+            PetPhoto.objects.create(
+                pet=pet, image=image, pose=pose, embedding=vector, keypoints=puntos
+            )
             added += 1
         if added:
-            vectors = [photo.embedding for photo in pet.photos.all()]
-            pet.centroid = embedding.centroid(vectors)
-            pet.save(update_fields=["centroid"])
+            photos = list(pet.photos.all())
+            pet.centroid = embedding.centroid([photo.embedding for photo in photos])
+            pet.keypoints = features.combine([photo.keypoints for photo in photos])
+            pet.save(update_fields=["centroid", "keypoints"])
             messages.success(request, f"{added} fotos guardadas. {pet.name} ya se puede reconocer.")
             return redirect("pets:ration", pk=pet.pk)
         form.add_error(None, "Sube al menos una foto.")

@@ -56,6 +56,9 @@ software/web/media/
 # PlatformIO
 .pio/
 
+# Modelos preentrenados (se descargan con make models)
+models/
+
 # Herramientas
 .playwright-mcp/
 

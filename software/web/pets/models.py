@@ -72,6 +72,10 @@ class Pet(models.Model):
     )
     photo = models.ImageField("foto", upload_to="pets/", blank=True)
     archived = models.BooleanField("archivada", default=False)
+    keypoints = models.TextField(
+        "puntos caracteristicos", blank=True, default="",
+        help_text="Descriptores ORB de las fotos de referencia, juntos.",
+    )
     centroid = models.JSONField(
         "vector de reconocimiento", default=list, blank=True,
         help_text="Promedio de los vectores de sus fotos. La Raspberry compara contra esto.",
@@ -177,6 +181,7 @@ class PetPhoto(models.Model):
     pet = models.ForeignKey(Pet, on_delete=models.CASCADE, related_name="photos")
     image = models.ImageField(upload_to="pets/reference/")
     pose = models.CharField("toma", max_length=10, choices=POSES, default="front")
+    keypoints = models.TextField("puntos caracteristicos", blank=True, default="")
     embedding = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
