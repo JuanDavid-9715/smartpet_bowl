@@ -227,7 +227,7 @@ def init():
     _servo = PWM(Pin(config.PIN_SERVO), freq=50)
     _mover_servo(config.TAPA_CERRADA)
 
-    _motor_pwm = PWM(Pin(config.PIN_MOTOR_IN1), freq=1000, duty_u16=0)
+    _motor_pwm = PWM(Pin(config.PIN_MOTOR_IN1), freq=500, duty_u16=0)
     _motor_b = Pin(config.PIN_MOTOR_IN2, Pin.OUT, value=0)
 
     _buzzer = Pin(config.PIN_BUZZER, Pin.OUT, value=0)
