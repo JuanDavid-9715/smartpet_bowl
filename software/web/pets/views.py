@@ -355,6 +355,23 @@ def events(request):
                 comida.delete()
                 messages.success(request, "Horario eliminado.")
 
+        elif accion == "servir":
+            pet = pets.filter(pk=request.POST.get("pet")).first()
+            comedero = Feeder.objects.filter(owner=request.user).first()
+            if pet is None:
+                messages.error(request, "Elige una mascota.")
+            elif comedero is None:
+                messages.error(request, "No hay comedero vinculado.")
+            else:
+                comidas = pet.meals_per_day or 2
+                gramos = round(float(pet.target_grams or 0) / comidas, 1)
+                FeederCommand.objects.create(
+                    feeder=comedero, action="feed", target=pet.name, grams=gramos
+                )
+                messages.success(
+                    request, "Orden para servir %s g a %s enviada." % (gramos, pet.name)
+                )
+
         elif accion == "orden":
             comedero = Feeder.objects.filter(
                 owner=request.user, pk=request.POST.get("feeder")
@@ -368,10 +385,17 @@ def events(request):
         return redirect("pets:events")
 
     comederos = Feeder.objects.filter(owner=request.user).order_by("code")
+
+    # La porcion que se sirve en cada comida, para mostrarla en el boton.
+    lista = list(pets)
+    for pet in lista:
+        comidas = pet.meals_per_day or 2
+        pet.portion = round(float(pet.target_grams or 0) / comidas, 1)
+
     return render(
         request,
         "pets/events.html",
-        {"pets": pets, "comederos": comederos},
+        {"pets": lista, "comederos": comederos},
     )
 
 

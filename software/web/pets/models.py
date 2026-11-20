@@ -197,10 +197,16 @@ class PetPhoto(models.Model):
 class FeederCommand(models.Model):
     """Orden pendiente para un comedero. La Raspberry las recoge y las publica."""
 
-    ACTIONS = [("reconnect", "Reconectar"), ("restart", "Reiniciar")]
+    ACTIONS = [
+        ("reconnect", "Reconectar"),
+        ("restart", "Reiniciar"),
+        ("feed", "Servir ahora"),
+    ]
 
     feeder = models.ForeignKey(Feeder, on_delete=models.CASCADE, related_name="commands")
     action = models.CharField(max_length=12, choices=ACTIONS, default="reconnect")
+    target = models.CharField("mascota", max_length=60, blank=True, default="")
+    grams = models.DecimalField("gramos", max_digits=6, decimal_places=1, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     sent_at = models.DateTimeField(null=True, blank=True)
 

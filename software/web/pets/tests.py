@@ -322,3 +322,21 @@ def test_eventos_muestra_la_pagina(client):
     response = client.get(reverse("pets:events"))
     assert response.status_code == 200
     assert b"Agregar una comida" in response.content
+
+
+@pytest.mark.django_db
+def test_eventos_servir_ahora_crea_orden(client):
+    from django.urls import reverse
+
+    from pets.models import Feeder, FeederCommand
+
+    User = get_user_model()
+    user = User.objects.create_user(username="s@s.co", email="s@s.co", password="x")
+    plato = Feeder.objects.create(owner=user, code="SPB-42")
+    pet = Pet.objects.create(owner=user, name="Jiru", species="cat", weight_kg=10,
+                             meals_per_day=2, target_grams=131.2, feeder=plato)
+    client.force_login(user)
+    client.post(reverse("pets:events"), {"accion": "servir", "pet": pet.pk})
+    orden = FeederCommand.objects.get(feeder=plato, action="feed")
+    assert orden.target == "Jiru"
+    assert float(orden.grams) == pytest.approx(65.6, abs=0.1)

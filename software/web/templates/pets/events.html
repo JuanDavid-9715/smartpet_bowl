@@ -76,10 +76,18 @@
   <div class="grid grid--2" style="margin-top:14px;align-items:start">
     {% for pet in pets %}
       <section class="card">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
           <h3 style="font-size:20px">{{ pet.name }}</h3>
           <span class="muted" style="font-size:12px">{{ pet.target_grams }} g al día · {{ pet.meals_per_day }} comidas</span>
         </div>
+        <form method="post" style="margin:14px 0 0">
+          {% csrf_token %}
+          <input type="hidden" name="accion" value="servir">
+          <input type="hidden" name="pet" value="{{ pet.pk }}">
+          <button class="btn btn--primary btn--sm" type="submit">
+            Servir ahora · {{ pet.portion }} g
+          </button>
+        </form>
         {% if pet.meal_times.all %}
           <div style="margin-top:14px;display:grid;gap:8px">
             {% for meal in pet.meal_times.all %}

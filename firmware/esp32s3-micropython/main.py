@@ -8,6 +8,7 @@ import sys
 import cam
 import config
 import hardware
+import mqtt
 import secrets
 import stream
 import wifi
@@ -27,6 +28,8 @@ def main():
 
     hardware.init()
     print("Hardware listo: servo", config.TAPA_CERRADA, "grados")
+
+    mqtt.iniciar(secrets.MQTT_HOST_FALLBACK)
     print("Abre en el navegador: http://%s/" % ip)
 
     stream.serve(ip)

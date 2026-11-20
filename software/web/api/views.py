@@ -137,7 +137,15 @@ def commands(request):
     if feeder is None:
         return JsonResponse({"error": "comedero desconocido"}, status=404)
     pending = list(feeder.commands.filter(sent_at__isnull=True))
-    payload = [{"id": cmd.pk, "action": cmd.action} for cmd in pending]
+    payload = [
+        {
+            "id": cmd.pk,
+            "action": cmd.action,
+            "target": cmd.target,
+            "grams": float(cmd.grams or 0),
+        }
+        for cmd in pending
+    ]
     if pending:
         feeder.commands.filter(pk__in=[c.pk for c in pending]).update(sent_at=timezone.now())
     return JsonResponse({"commands": payload})
