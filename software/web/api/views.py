@@ -106,8 +106,12 @@ def plan(request):
     feeder = Feeder.objects.filter(code=code).first()
     if feeder is None:
         return JsonResponse({"error": "comedero desconocido"}, status=404)
+    # Todas las mascotas del dueño, no solo la asignada a este plato: el
+    # comedero tiene que reconocer a cualquiera que se acerque, y el plato es
+    # uno por mascota. Con un solo comedero en la demo, esto es lo que hace que
+    # la camara sepa de las dos.
     pets = []
-    for pet in feeder.pets.filter(archived=False):
+    for pet in feeder.owner.pets.filter(archived=False):
         pets.append({
             "name": pet.name,
             "species": pet.species,
