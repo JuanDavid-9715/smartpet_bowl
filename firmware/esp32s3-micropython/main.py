@@ -7,6 +7,7 @@ import sys
 
 import cam
 import config
+import hardware
 import secrets
 import stream
 import wifi
@@ -23,6 +24,9 @@ def main():
 
     camara = cam.camera()
     print("Camara:", cam.info(camara))
+
+    hardware.init()
+    print("Hardware listo: servo", config.TAPA_CERRADA, "grados")
     print("Abre en el navegador: http://%s/" % ip)
 
     stream.serve(ip)

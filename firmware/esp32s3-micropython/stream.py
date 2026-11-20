@@ -1,13 +1,17 @@
-"""Servidor HTTP con visor MJPEG.
+"""Servidor HTTP: panel de pruebas, video y API de comandos.
 
 Rutas:
-  /                      pagina con el video
-  /stream?size=&q=       flujo multipart/x-mixed-replace
-  /capture?size=&q=      un unico JPEG
-  /status                datos del comedero en JSON
-
-size admite vga, svga o hd. Sirve para comparar fluidez contra nitidez sin
-volver a flashear: el enlace WiFi manda, no la camara.
+  /                      panel de pruebas (motor, servo, buzzer, peso simulado)
+  /stream                MJPEG, solo si hay presencia simulada
+  /capture               un unico JPEG
+  /status                datos tecnicos en JSON
+  /api/state             estado del hardware
+  /api/presence          {"on": true|false}
+  /api/weight            {"grams": 12.5}
+  /api/tare              pone el peso a cero
+  /api/motor             {"on": true, "pet": "Jiru", "grams": 65.6} o {"on": false}
+  /api/servo             {"angle": 0..180}
+  /api/buzzer            {"times": 2}
 """
 
 import _thread
@@ -15,10 +19,13 @@ import gc
 import socket
 import time
 
+import ujson
 from camera import FrameSize
 
 import cam
 import config
+import hardware
+import panel
 
 BOUNDARY = "spbframe"
 
@@ -27,38 +34,6 @@ SIZES = {
     "svga": FrameSize.SVGA,
     "hd": FrameSize.HD,
 }
-
-PAGE = """<!doctype html>
-<html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SmartPet Bowl - camara</title>
-<style>
-  body{margin:0;background:#0e1116;color:#e6edf3;font-family:system-ui,sans-serif}
-  header{padding:14px 18px;font-size:15px;letter-spacing:.3px;color:#9aa7b4}
-  header b{color:#e6edf3;font-weight:600}
-  main{padding:0 18px 18px}
-  nav{margin:0 0 12px}
-  nav a{display:inline-block;padding:7px 14px;margin-right:8px;border-radius:8px;
-        background:#1b2230;color:#c8d4e0;text-decoration:none;font-size:13px}
-  nav a.on{background:#2a6df4;color:#fff}
-  img{width:100%;max-width:__MAXW__px;height:auto;border-radius:10px;display:block;background:#000}
-  p{margin:10px 0 0;font-size:13px;color:#8b98a5}
-  a{color:#4aa3ff}
-</style></head>
-<body>
-<header><b>SmartPet Bowl</b> &middot; camara en vivo</header>
-<main>
-  <nav>
-    <a href="/?size=vga" class="__VGA__">Fluido</a>
-    <a href="/?size=svga" class="__SVGA__">Equilibrado</a>
-    <a href="/?size=hd" class="__HD__">Nitido</a>
-  </nav>
-  <img src="/stream?size=__SIZE__" alt="video">
-  <p>Un cuadro suelto: <a href="/capture?size=__SIZE__">/capture</a> &middot;
-     datos: <a href="/status">/status</a></p>
-</main>
-</body></html>
-"""
 
 
 def _send_all(sock, data):
@@ -70,25 +45,29 @@ def _send_all(sock, data):
         view = view[sent:]
 
 
-def _send_text(sock, body, content_type="text/plain; charset=utf-8"):
+def _send_text(sock, body, content_type="text/plain; charset=utf-8", status="200 OK"):
     raw = body.encode()
     head = (
-        "HTTP/1.1 200 OK\r\n"
+        "HTTP/1.1 %s\r\n"
         "Content-Type: %s\r\n"
         "Content-Length: %d\r\n"
         "Cache-Control: no-store\r\n"
         "Connection: close\r\n\r\n"
-    ) % (content_type, len(raw))
+    ) % (status, content_type, len(raw))
     _send_all(sock, head.encode())
     _send_all(sock, raw)
 
 
+def _json(sock, datos):
+    _send_text(sock, ujson.dumps(datos), "application/json")
+
+
 def _request(sock):
-    """Devuelve (ruta, parametros) de la primera linea de la peticion."""
+    """Devuelve (ruta, parametros, cuerpo)."""
     sock.settimeout(3)
     data = b""
     try:
-        while b"\r\n\r\n" not in data and len(data) < 2048:
+        while b"\r\n\r\n" not in data and len(data) < 4096:
             chunk = sock.recv(512)
             if not chunk:
                 break
@@ -96,21 +75,38 @@ def _request(sock):
     except OSError:
         pass
 
-    line = data.split(b"\r\n", 1)[0].decode()
-    parts = line.split(" ")
-    target = parts[1] if len(parts) > 1 else "/"
+    cabecera, _, cuerpo = data.partition(b"\r\n\r\n")
+    linea = cabecera.split(b"\r\n", 1)[0].decode()
+    partes = linea.split(" ")
+    objetivo = partes[1] if len(partes) > 1 else "/"
 
-    path, _, query = target.partition("?")
+    largo = 0
+    for fila in cabecera.split(b"\r\n")[1:]:
+        if fila.lower().startswith(b"content-length:"):
+            try:
+                largo = int(fila.split(b":", 1)[1])
+            except ValueError:
+                largo = 0
+    while len(cuerpo) < largo:
+        try:
+            trozo = sock.recv(512)
+        except OSError:
+            break
+        if not trozo:
+            break
+        cuerpo += trozo
+
+    ruta, _, consulta = objetivo.partition("?")
     params = {}
-    for par in query.split("&"):
+    for par in consulta.split("&"):
         if "=" in par:
             clave, _, valor = par.partition("=")
             params[clave] = valor
-    return path, params
+    return ruta, params, cuerpo
 
 
 def _apply(camara, params):
-    """Ajusta tamano y calidad si vienen en la URL. Devuelve el nombre usado."""
+    """Ajusta tamano y calidad si vienen en la URL."""
     size = params.get("size", config.DEFAULT_SIZE)
     if size not in SIZES:
         size = config.DEFAULT_SIZE
@@ -130,10 +126,6 @@ def _apply(camara, params):
         except (ValueError, OSError):
             pass
     return size
-
-
-def _max_width(camara):
-    return camara.get_pixel_width() if camara.get_pixel_width() else 1280
 
 
 def _jpeg(sock, camara, params):
@@ -184,36 +176,48 @@ def _stream(sock, camara, params):
             gc.collect()
 
 
-def _page(sock, camara, params):
-    size = params.get("size", config.DEFAULT_SIZE)
-    if size not in SIZES:
-        size = config.DEFAULT_SIZE
-    _apply(camara, {"size": size})
-    html = (
-        PAGE.replace("__SIZE__", size)
-        .replace("__MAXW__", str(_max_width(camara)))
-        .replace("__VGA__", "on" if size == "vga" else "")
-        .replace("__SVGA__", "on" if size == "svga" else "")
-        .replace("__HD__", "on" if size == "hd" else "")
-    )
-    _send_text(sock, html, "text/html; charset=utf-8")
-
-
 def _status(sock, camara, ip):
     info = cam.info(camara)
-    body = (
-        '{"feeder":"%s","ip":"%s","sensor":"%s","width":%d,"height":%d,'
-        '"quality":%d,"free_mem":%d}'
-    ) % (
-        config.FEEDER_CODE,
-        ip,
-        info["sensor"],
-        info["width"],
-        info["height"],
-        camara.get_quality(),
-        gc.mem_free(),
-    )
-    _send_text(sock, body, "application/json")
+    datos = hardware.snapshot()
+    datos.update({
+        "feeder": config.FEEDER_CODE,
+        "ip": ip,
+        "sensor": info["sensor"],
+        "width": info["width"],
+        "height": info["height"],
+        "quality": camara.get_quality(),
+        "free_mem": gc.mem_free(),
+    })
+    _json(sock, datos)
+
+
+def _api(sock, path, body):
+    datos = {}
+    if body:
+        try:
+            datos = ujson.loads(body)
+        except ValueError:
+            datos = {}
+
+    if path.startswith("/api/state"):
+        return _json(sock, hardware.snapshot())
+    if path.startswith("/api/presence"):
+        return _json(sock, {"presence": hardware.set_presence(datos.get("on"))})
+    if path.startswith("/api/weight"):
+        return _json(sock, {"weight": hardware.set_weight(datos.get("grams", 0))})
+    if path.startswith("/api/tare"):
+        return _json(sock, {"weight": hardware.tare()})
+    if path.startswith("/api/motor"):
+        if datos.get("on"):
+            hardware.motor(True, datos.get("pet", ""), datos.get("grams", 0))
+        else:
+            hardware.motor(False)
+        return _json(sock, hardware.snapshot())
+    if path.startswith("/api/servo"):
+        return _json(sock, {"servo": hardware.servo(datos.get("angle", config.TAPA_CERRADA))})
+    if path.startswith("/api/buzzer"):
+        return _json(sock, {"beeps": hardware.beep(datos.get("times", 2))})
+    return _json(sock, {"error": "ruta desconocida"})
 
 
 _cam_lock = _thread.allocate_lock()
@@ -221,24 +225,28 @@ _current_stream = None
 
 
 def _handle(client, ip):
-    """Atiende una peticion en su propio hilo."""
     global _current_stream
 
     path = "/"
     try:
-        # Nagle retiene cada cuadro hasta 200 ms y el video se ve a saltos.
         try:
             client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             client.settimeout(8)
         except OSError:
             pass
 
-        path, params = _request(client)
+        path, params, body = _request(client)
+
+        if path.startswith("/api/"):
+            _api(client, path, body)
+            return
+
         camara = cam.camera()
 
         if path.startswith("/stream"):
-            # El cliente mas reciente manda: se cierra el anterior y este toma
-            # la camara, asi recargar la pagina responde al instante.
+            if not hardware.snapshot()["presence"]:
+                _send_text(client, "", status="204 No Content")
+                return
             previo = _current_stream
             _current_stream = client
             if previo is not None and previo is not client:
@@ -260,10 +268,11 @@ def _handle(client, ip):
         elif path.startswith("/status"):
             _status(client, camara, ip)
         else:
-            _page(client, camara, params)
+            _apply(camara, params)
+            _send_text(client, panel.PAGE, "text/html; charset=utf-8")
 
-    except Exception as error:  # noqa: BLE001 - el visor no debe caerse
-        if path != "/stream":          # un stream cortado es normal
+    except Exception as error:  # noqa: BLE001 - el panel no debe caerse
+        if path != "/stream":
             print("error atendiendo %s: %r" % (path, error))
     finally:
         try:
@@ -279,7 +288,7 @@ def serve(ip):
     server.bind(("0.0.0.0", config.HTTP_PORT))
     server.listen(4)
 
-    print("Visor listo: http://%s/" % ip)
+    print("Panel listo: http://%s/" % ip)
 
     while True:
         try:

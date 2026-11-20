@@ -38,6 +38,8 @@ DEFAULT_SIZE = "svga"
 
 # --- Actuadores y sensores (etapas siguientes) ----------------------------
 PIN_SERVO = 14
+TAPA_CERRADA = 20        # angulo del servo con la tapa puesta
+TAPA_ABIERTA = 105       # angulo con la tapa levantada
 PIN_BUZZER = 21
 PIN_MOTOR_IN1 = 47
 PIN_MOTOR_IN2 = 48
