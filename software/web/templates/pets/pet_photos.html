@@ -35,15 +35,26 @@
     var img = document.getElementById('vivo');
     var aviso = document.getElementById('aviso-camara');
     if (!img) { return; }
-    setInterval(function () {
-      img.src = '{% url 'pets:photo_preview' pet.pk %}?t=' + Date.now();
-    }, 1200);
-    img.addEventListener('error', function () {
-      aviso.textContent = 'Sin imagen del comedero. Revisa que este encendido.';
-    });
+    var base = '{% url 'pets:photo_preview' pet.pk %}';
+
+    // Se pide la siguiente SOLO cuando la anterior llego. Con este enlace una
+    // foto tarda varios segundos: refrescar por reloj cancelaba la que estaba
+    // en camino y la vista se quedaba en negro.
+    function siguiente(espera) {
+      window.setTimeout(function () {
+        img.src = base + '?t=' + Date.now();
+      }, espera);
+    }
+
     img.addEventListener('load', function () {
       aviso.textContent = 'Vista en vivo del comedero';
+      siguiente(600);
     });
+    img.addEventListener('error', function () {
+      aviso.textContent = 'Sin imagen del comedero. Reintentando...';
+      siguiente(3000);
+    });
+    siguiente(0);
   })();
 </script>
 {% endif %}

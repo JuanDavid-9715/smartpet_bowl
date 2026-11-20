@@ -544,7 +544,7 @@ def live_video(request):
 
 # --- registrar las tomas con la camara del plato --------------------------
 
-def _foto_del_equipo(ancho=15) -> bytes:
+def _foto_del_equipo(ancho=15, tamano="vga") -> bytes:
     """Pide una foto al ESP32.
 
     El enlace del comedor es irregular: la misma peticion tarda entre 0,2 y 5 s.
@@ -555,7 +555,7 @@ def _foto_del_equipo(ancho=15) -> bytes:
     for _ in range(2):
         try:
             respuesta = _dispositivo_sesion.get(
-                _dispositivo() + "/capture?size=vga", timeout=(4, ancho)
+                _dispositivo() + "/capture?size=" + tamano, timeout=(4, ancho)
             )
             respuesta.raise_for_status()
             return respuesta.content
@@ -571,7 +571,9 @@ def pet_preview(request, pk):
         raise Http404("Sin equipo local.")
     get_object_or_404(_pets(request), pk=pk)
     try:
-        datos = _foto_del_equipo()
+        # La vista previa va en QVGA: encuadrar no necesita VGA y pesa la mitad.
+        # La foto que se guarda si se pide en VGA.
+        datos = _foto_del_equipo(ancho=12, tamano="qvga")
     except requests.RequestException:
         raise Http404("La camara del plato no responde.")
     return HttpResponse(datos, content_type="image/jpeg")
