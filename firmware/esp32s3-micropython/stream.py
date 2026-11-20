@@ -122,7 +122,7 @@ def _apply(camara, params):
         except OSError:
             size = config.DEFAULT_SIZE
 
-    quality = params.get("q")
+    quality = params.get("q", config.STREAM_QUALITY)
     if quality:
         try:
             valor = int(quality)
@@ -161,7 +161,9 @@ def _stream(sock, camara, params):
     _send_all(sock, head.encode())
 
     frames = 0
+    intervalo = 1000 // max(1, config.STREAM_FPS)
     while True:
+        inicio = time.ticks_ms()
         _cam_lock.acquire()
         try:
             buf = cam.frame(camara)
@@ -179,6 +181,12 @@ def _stream(sock, camara, params):
         frames += 1
         if frames % 100 == 0:
             gc.collect()
+
+        # Sin este tope el video se come el enlace y la API del panel deja de
+        # responder: con 5-20 KB/s de ancho de banda, un flujo libre lo satura.
+        resto = intervalo - time.ticks_diff(time.ticks_ms(), inicio)
+        if resto > 0:
+            time.sleep_ms(resto)
 
 
 def _status(sock, camara, ip):

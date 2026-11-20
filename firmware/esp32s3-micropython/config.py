@@ -35,6 +35,8 @@ CAMERA_BRIGHTNESS = 1
 HTTP_PORT = 80
 # vga (fluido), svga (equilibrado) o hd (nitido). Se puede cambiar desde la web.
 DEFAULT_SIZE = "qvga"   # 320x240: el enlace manda; las fotos se toman en VGA
+STREAM_FPS = 3          # tope de cuadros por segundo: el video no debe ahogar la API
+STREAM_QUALITY = 50
 
 # --- Actuadores y sensores (etapas siguientes) ----------------------------
 PIN_SERVO = 14
