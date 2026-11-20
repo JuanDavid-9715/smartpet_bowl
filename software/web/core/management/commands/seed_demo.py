@@ -87,8 +87,10 @@ class Command(BaseCommand):
             ration = pet.suggested_ration()
             pet.target_grams = ration.grams_per_day
             pet.save()
-            pet.meal_times.all().delete()
-            pet.ensure_schedule()
+            # Solo se crean si la mascota no tiene horarios: asi el seed no
+            # pisa lo que el usuario programe desde la web.
+            if not pet.meal_times.exists():
+                pet.ensure_schedule()
             self.stdout.write(f"{pet.name}: {ration.grams_per_day} g al dia en {pet.meal_times.count()} comidas")
 
         if not MealEvent.objects.filter(pet=jiru).exists():

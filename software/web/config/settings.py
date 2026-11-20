@@ -22,6 +22,13 @@ DEBUG = env_bool("DEBUG", True)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 
+# Render publica el dominio en esta variable; con eso no hay que escribir el
+# hostname a mano en cada despliegue.
+RENDER_HOST = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
+if RENDER_HOST:
+    ALLOWED_HOSTS = sorted(set(ALLOWED_HOSTS + [RENDER_HOST, ".onrender.com"]))
+    CSRF_TRUSTED_ORIGINS = sorted(set(CSRF_TRUSTED_ORIGINS + [f"https://{RENDER_HOST}"]))
+
 # "local" corre en la Raspberry (SQLite, sin nube). "cloud" corre en Render (PostgreSQL).
 DEPLOYMENT = os.getenv("DEPLOYMENT", "local").strip().lower()
 IS_LOCAL = DEPLOYMENT == "local"
@@ -75,13 +82,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 if DATABASE_URL:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": DATABASE_URL,
-            "CONN_MAX_AGE": 600,
-        }
-    }
+    # Render entrega una URL completa (postgres://usuario:clave@host/base).
+    # El backend de Django espera los campos por separado, asi que se parsea.
+    import dj_database_url
+
+    DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
 else:
     DATABASES = {
         "default": {

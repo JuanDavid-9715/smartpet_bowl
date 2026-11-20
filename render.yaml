@@ -1,0 +1,38 @@
+# Despliegue en Render del sitio publico y la app.
+# La Raspberry sigue siendo el equipo que come los datos; esto es la nube.
+databases:
+  - name: smartpet-db
+    databaseName: smartpet
+    user: smartpet
+    plan: free
+
+services:
+  - type: web
+    name: smartpet-bowl
+    runtime: python
+    plan: free
+    branch: main
+    rootDir: software/web
+    buildCommand: "./build.sh"
+    # migrate crea el esquema; seed_demo deja la cuenta y los datos de ejemplo
+    # (es idempotente: si ya existen, los actualiza y no duplica historial).
+    startCommand: "python manage.py migrate && python manage.py seed_demo && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.5"
+      - key: DEPLOYMENT
+        value: cloud
+      - key: DEBUG
+        value: "0"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: INGEST_TOKEN
+        generateValue: true
+      - key: DEMO_EMAIL
+        value: juanda.medellinca@ecci.edu.co
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smartpet-db
+          property: connectionString
