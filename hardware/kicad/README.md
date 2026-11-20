@@ -4,7 +4,7 @@ Este proyecto usa KiCad únicamente para el esquemático eléctrico. **No se fab
 
 ## Archivos
 
-- `smartpet_bowl.kicad_sch` — esquemático del comedero, hoja única A2, **rev 5**.
+- `smartpet_bowl.kicad_sch` — esquemático del comedero, hoja única A2, **rev 6**.
 - `smartpet_bowl.kicad_pro` — proyecto de KiCad.
 - `sym-lib-table` — registra la biblioteca propia del proyecto.
 - `libraries/smartpet_bowl.kicad_sym` — símbolos de los módulos.
@@ -67,6 +67,17 @@ lleva aspa (`no_connect`), que es como KiCad dice "libre a propósito".
 `38`, `39` y `40` son además `SD_CMD`, `SD_CLK` y `SD_DATA`: **con la celda y el
 motor conectados no se puede usar la tarjeta SD**. El video va por WiFi.
 
+## Por qué IN1 e IN2, si no hay reversa
+
+El canal A del L298N son **dos medios puentes**, uno por cada entrada. Con
+`IN1=1, IN2=0` gira en un sentido; con `IN1=0, IN2=1` gira al revés; con las dos
+iguales frena. **`IN2` no puede quedar al aire**: una entrada flotante deja el
+medio puente indefinido y el motor no arranca o tirita.
+
+Si nunca se va a necesitar reversa, `IN2` se puede llevar a **GND** en vez de a
+GPIO38 y el GPIO queda libre. Se pierde la reversa, que sirve para desatascar el
+tornillo. El firmware actual no la usa, así que las dos opciones funcionan.
+
 ## Decisiones de diseño
 
 - **Tapa y dosificador son mecanismos distintos.** El servo abre la tapa; el motor mueve el tornillo sin fin.
@@ -76,11 +87,32 @@ motor conectados no se puede usar la tarjeta SD**. El video va por WiFi.
 - **C1 en 12 V y C2 en 5 V** absorben los picos del motor y del servo para que el ESP32 no se reinicie.
 - **El ESP32-S3 no decide nada.** Recibe comandos, mueve servo y motor, pesa y reporta.
 
+## Alimentación
+
+**Los 5 V salen del USB del PC**, por el pin `+5V` de la placa. De ahí comen el
+ESP32, el HX711, el VL53L0X, el buzzer y la lógica del L298N. El riel de 12 V es
+aparte y solo alimenta el puente H.
+
+Consecuencia: **hay que quitar el jumper `5V-EN` del L298N.** Con el jumper
+puesto, el borne `+5V` es la *salida* del regulador del módulo; si además está
+conectado al riel del USB, dos reguladores pelean y uno pierde. Sin jumper, ese
+borne es una entrada y el módulo toma los 5 V del USB.
+
 ## Avisos eléctricos
 
-- **HX711 a 5 V**: su salida `DT` llega a 5 V y GPIO40 tolera 3.6 V. Hace falta un divisor o alimentar el módulo a 3.3 V (esto último ya no es posible sin ese riel).
-- **Servo y motor**: el SG90 pide ~700 mA de pico. La salida de 5 V del L298N no debería alimentar además al ESP32 con esa carga; conviene una fuente aparte.
-- **No conectar el USB del ESP32 y el 5 V del L298N al mismo tiempo.**
+- **Un GPIO del ESP32 no tolera 5 V.** El máximo absoluto del datasheet es
+  **3.6 V** (`Allowed input voltage 0.3–3.6 V`, tabla 5.1). Solo el pin `+5V`
+  de la placa está hecho para 5 V. Que un GPIO aguante 5 V un rato no significa
+  que esté dentro de especificación: el diodo de protección conduce y el daño se
+  acumula.
+- **HX711 a 5 V**: su salida `DT` llega a 5 V. Entre `DT` y GPIO40 hace falta un
+  divisor (por ejemplo 10 kΩ / 20 kΩ) o el pin queda fuera de rango.
+- **Servo**: el SG90 consume 220 mA en movimiento y **650 mA en bloqueo**. Un
+  puerto USB 2.0 entrega 500 mA y el ESP32 con WiFi ya pide ~250 mA. Si la placa
+  se reinicia al mover el servo, ese es el motivo: hay que darle al servo su
+  propia fuente de 5 V con GND común.
+- **No conectar el USB y el borne de 5 V de otra fuente al mismo tiempo**, salvo
+  que esa fuente sea la única y el USB solo esté para datos.
 
 ## Regenerar los planos
 
