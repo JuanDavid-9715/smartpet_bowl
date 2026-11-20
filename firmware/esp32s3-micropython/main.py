@@ -29,6 +29,7 @@ def main():
     hardware.init()
     print("Hardware listo: servo", config.TAPA_CERRADA, "grados")
 
+    hardware.set_publisher(mqtt.publish_event)
     mqtt.iniciar(secrets.MQTT_HOST_FALLBACK)
     print("Abre en el navegador: http://%s/" % ip)
 

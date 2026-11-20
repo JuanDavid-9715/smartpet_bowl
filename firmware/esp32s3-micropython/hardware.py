@@ -31,6 +31,9 @@ STATE = {
     "duty": config.MOTOR_DUTY,
     "sensor_ok": False,
     "mqtt": False,
+    "meal": False,
+    "meal_pet": "",
+    "leftover": 0.0,
     "cell_ok": False,
 }
 
@@ -49,6 +52,8 @@ _motor_b = None
 _sensor = None
 _offset = 0
 _dosis_inicio = 0
+_publicar = None
+_comida = {"activa": False, "pet": "", "inicio_g": 0.0, "inicio_ms": 0, "ausente_ms": 0}
 _escala = config.HX711_SCALE
 _arrancado = False
 
@@ -214,6 +219,22 @@ def _bucle():
                 if llego or tarde:
                     STATE["dosing"] = False
                     _motor(False)
+
+            # Ciclo de comida: si la mascota no esta, la tapa se cierra y se
+            # reporta lo que quedo. Tiempos cortos para poder verlo en la demo.
+            if _comida["activa"]:
+                ahora = time.ticks_ms()
+                if STATE["presence"]:
+                    _comida["ausente_ms"] = 0
+                    # Con la mascota delante, la tapa va abierta.
+                    if STATE["servo"] != config.TAPA_ABIERTA:
+                        _mover_servo(config.TAPA_ABIERTA)
+                elif not _comida["ausente_ms"]:
+                    _comida["ausente_ms"] = ahora
+                elif time.ticks_diff(ahora, _comida["ausente_ms"]) > config.GRACE_MS:
+                    _cerrar_comida("se fue")
+                elif time.ticks_diff(ahora, _comida["inicio_ms"]) > config.MEAL_MAX_MS:
+                    _cerrar_comida("tiempo agotado")
         finally:
             _lock.release()
         time.sleep_ms(200)
@@ -278,6 +299,40 @@ def reset():
     return True
 
 
+def set_publisher(fn):
+    """main() pasa aqui la funcion que publica por MQTT."""
+    global _publicar
+    _publicar = fn
+
+
+def _avisar(sufijo, datos):
+    if _publicar is None:
+        return
+    try:
+        _publicar(sufijo, datos)
+    except Exception as error:  # noqa: BLE001 - nunca tumbar el bucle
+        print("publicar:", error)
+
+
+def _cerrar_comida(motivo):
+    """Cierra la tapa y reporta el sobrante."""
+    _comida["activa"] = False
+    _mover_servo(config.TAPA_CERRADA)
+    sobrante = max(0.0, round(STATE["grams"] - _comida["inicio_g"], 1))
+    duracion = 0
+    if _comida["inicio_ms"]:
+        duracion = time.ticks_diff(time.ticks_ms(), _comida["inicio_ms"]) // 1000
+    STATE["meal"] = False
+    STATE["leftover"] = sobrante
+    _avisar("sobrante", {
+        "gramos": sobrante,
+        "mascota": _comida["pet"],
+        "duracion_s": duracion,
+        "motivo": motivo,
+    })
+    print("Comida cerrada:", motivo, "| sobrante", sobrante, "g de", _comida["pet"])
+
+
 def set_mqtt(conectado):
     _lock.acquire()
     try:
@@ -305,6 +360,16 @@ def dose(pet, gramos):
         STATE["dosing"] = True
         _dosis_inicio = time.ticks_ms()
         _motor(True)
+        _comida.update({
+            "activa": True,
+            "pet": pet,
+            "inicio_g": STATE["grams"],
+            "inicio_ms": time.ticks_ms(),
+            "ausente_ms": 0,
+        })
+        STATE["meal"] = True
+        STATE["meal_pet"] = pet
+        STATE["leftover"] = 0.0
     finally:
         _lock.release()
     return STATE["target"]

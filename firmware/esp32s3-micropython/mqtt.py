@@ -51,6 +51,15 @@ def _al_recibir(tema, mensaje):
         machine.reset()
 
 
+def publish_event(sufijo, datos):
+    """Publica un evento del comedero (sobrante, peso...)."""
+    if _cliente is None:
+        return False
+    tema = b"comedero/" + config.FEEDER_CODE.encode() + b"/evento/" + sufijo.encode()
+    _cliente.publish(tema, json.dumps(datos))
+    return True
+
+
 def _bucle(host):
     global _cliente
     while True:

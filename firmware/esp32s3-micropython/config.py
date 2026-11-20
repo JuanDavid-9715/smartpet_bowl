@@ -21,8 +21,8 @@ CAMERA = {
     "powerdown_pin": -1,
     "reset_pin": -1,
     "pixel_format": PixelFormat.JPEG,
-    "frame_size": FrameSize.SVGA,    # 800x600: el enlace WiFi manda
-    "jpeg_quality": 80,              # es un porcentaje: mas alto = mejor
+    "frame_size": FrameSize.VGA,     # 640x480: el enlace WiFi manda
+    "jpeg_quality": 70,              # es un porcentaje: mas alto = mejor
     "fb_count": 2,
 }
 
@@ -34,7 +34,7 @@ CAMERA_BRIGHTNESS = 1
 # --- Servidor de video ----------------------------------------------------
 HTTP_PORT = 80
 # vga (fluido), svga (equilibrado) o hd (nitido). Se puede cambiar desde la web.
-DEFAULT_SIZE = "svga"
+DEFAULT_SIZE = "vga"
 
 # --- Actuadores y sensores (etapas siguientes) ----------------------------
 PIN_SERVO = 14
@@ -42,6 +42,10 @@ TAPA_CERRADA = 0         # angulo del servo con la tapa puesta
 TAPA_ABIERTA = 50        # angulo con la tapa levantada
 MOTOR_DUTY = 6           # porcentaje inicial; 4 % no vence el par, 5-6 % gira lento
 DOSIS_TIMEOUT_MS = 30000 # corte de seguridad si la celda nunca llega al objetivo
+
+# --- Ciclo de comida (para la simulacion, corto) --------------------------
+GRACE_MS = 8000          # cuanto puede faltar la mascota sin cerrar la tapa
+MEAL_MAX_MS = 60000      # tope de una comida completa
 PIN_BUZZER = 21
 PIN_MOTOR_IN1 = 47
 PIN_MOTOR_IN2 = 48
