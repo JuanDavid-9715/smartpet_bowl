@@ -23,18 +23,25 @@ for _ in $(seq 1 30); do
 done
 log "broker listo"
 
-# 3. Servicio del comedero (escucha MQTT, identifica y guarda)
-if ! pgrep -f "raspberry-pi/.venv/bin/python main.py" > /dev/null; then
-  cd "$BASE/raspberry-pi" || exit 1
-  nohup .venv/bin/python main.py >> "$LOG/servicio.log" 2>&1 &
-  log "servicio iniciado (pid $!)"
-fi
-
-# 4. Web local
+# 3. Web local primero: el servicio necesita el plan para arrancar con datos
 if ! pgrep -f "manage.py runserver 0.0.0.0:8000" > /dev/null; then
   cd "$BASE/web" || exit 1
   nohup .venv/bin/python manage.py runserver 0.0.0.0:8000 >> "$LOG/web.log" 2>&1 &
   log "web iniciada (pid $!)"
+fi
+
+# 4. Esperar a que la web responda antes de levantar el servicio
+for _ in $(seq 1 30); do
+  if curl -s -m 2 http://127.0.0.1:8000/api/v1/health/ > /dev/null 2>&1; then break; fi
+  sleep 2
+done
+log "web lista"
+
+# 5. Servicio del comedero (escucha MQTT, identifica y guarda)
+if ! pgrep -f "raspberry-pi/.venv/bin/python main.py" > /dev/null; then
+  cd "$BASE/raspberry-pi" || exit 1
+  nohup .venv/bin/python main.py >> "$LOG/servicio.log" 2>&1 &
+  log "servicio iniciado (pid $!)"
 fi
 
 log "listo"
