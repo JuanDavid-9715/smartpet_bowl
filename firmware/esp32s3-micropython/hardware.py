@@ -53,7 +53,8 @@ _sensor = None
 _offset = 0
 _dosis_inicio = 0
 _publicar = None
-_comida = {"activa": False, "pet": "", "inicio_g": 0.0, "inicio_ms": 0, "ausente_ms": 0}
+# fases: "quieto" -> "llenando" (tapa cerrada) -> "esperando" (tapa abierta)
+_comida = {"fase": "quieto", "pet": "", "inicio_g": 0.0, "inicio_ms": 0, "avisado": False}
 _escala = config.HX711_SCALE
 _arrancado = False
 
@@ -220,20 +221,34 @@ def _bucle():
                     STATE["dosing"] = False
                     _motor(False)
 
-            # Ciclo de comida: si la mascota no esta, la tapa se cierra y se
-            # reporta lo que quedo. Tiempos cortos para poder verlo en la demo.
-            if _comida["activa"]:
+            # Ciclo de comida.
+            if _comida["fase"] == "llenando" and not STATE["dosing"]:
+                # El plato ya esta servido: ahora si se abre la compuerta.
+                _comida["fase"] = "esperando"
+                _comida["inicio_g"] = STATE["grams"]
+                _comida["inicio_ms"] = time.ticks_ms()
+                _comida["avisado"] = False
+                _mover_servo(config.TAPA_ABIERTA)
+                _avisar("peso", {"gramos": STATE["grams"]})
+                print("Plato servido: se abre la tapa y se espera a", _comida["pet"])
+
+            elif _comida["fase"] == "esperando":
                 ahora = time.ticks_ms()
+
                 if STATE["presence"]:
-                    _comida["ausente_ms"] = 0
-                    # Con la mascota delante, la tapa va abierta.
+                    if not _comida["avisado"]:
+                        # La Raspberry intenta identificarla; si no es la
+                        # mascota responde "cerrar" y la tapa se cierra.
+                        _comida["avisado"] = True
+                        _avisar("presencia", {"distancia_mm": STATE["distance"]})
+                else:
+                    _comida["avisado"] = False
+                    # Se fue lo que habia delante: si la Pi cerro la tapa,
+                    # vuelve a abrirse para esperar a la mascota correcta.
                     if STATE["servo"] != config.TAPA_ABIERTA:
                         _mover_servo(config.TAPA_ABIERTA)
-                elif not _comida["ausente_ms"]:
-                    _comida["ausente_ms"] = ahora
-                elif time.ticks_diff(ahora, _comida["ausente_ms"]) > config.GRACE_MS:
-                    _cerrar_comida("se fue")
-                elif time.ticks_diff(ahora, _comida["inicio_ms"]) > config.MEAL_MAX_MS:
+
+                if time.ticks_diff(ahora, _comida["inicio_ms"]) > config.MEAL_MAX_MS:
                     _cerrar_comida("tiempo agotado")
         finally:
             _lock.release()
@@ -316,7 +331,8 @@ def _avisar(sufijo, datos):
 
 def _cerrar_comida(motivo):
     """Cierra la tapa y reporta el sobrante."""
-    _comida["activa"] = False
+    _comida["fase"] = "quieto"
+    _comida["avisado"] = False
     _mover_servo(config.TAPA_CERRADA)
     sobrante = max(0.0, round(STATE["grams"] - _comida["inicio_g"], 1))
     duracion = 0
@@ -360,12 +376,13 @@ def dose(pet, gramos):
         STATE["dosing"] = True
         _dosis_inicio = time.ticks_ms()
         _motor(True)
+        # Se llena con la tapa CERRADA; se abre cuando el plato este servido.
         _comida.update({
-            "activa": True,
+            "fase": "llenando",
             "pet": pet,
             "inicio_g": STATE["grams"],
-            "inicio_ms": time.ticks_ms(),
-            "ausente_ms": 0,
+            "inicio_ms": 0,
+            "avisado": False,
         })
         STATE["meal"] = True
         STATE["meal_pet"] = pet

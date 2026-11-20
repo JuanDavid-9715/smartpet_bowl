@@ -368,10 +368,9 @@ def events(request):
                 comidas = pet.meals_per_day or 2
                 gramos = round(float(pet.target_grams or 0) / comidas, 1)
                 try:
-                    _device_post(
-                        "/api/dose",
-                        {"pet": pet.name, "grams": gramos, "open": True},
-                    )
+                    # Sin "open": el plato se llena con la tapa cerrada y la
+                    # placa la abre sola cuando termina de servir.
+                    _device_post("/api/dose", {"pet": pet.name, "grams": gramos})
                     messages.success(
                         request, "Sirviendo %s g a %s en el comedero." % (gramos, pet.name)
                     )
