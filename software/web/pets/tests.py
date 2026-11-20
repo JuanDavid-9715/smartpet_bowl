@@ -408,7 +408,7 @@ def test_vivo_muestra_la_pagina(client, monkeypatch):
         def raise_for_status(self):
             return None
 
-    monkeypatch.setattr(views.requests, "get", lambda *a, **k: Falsa())
+    monkeypatch.setattr(views._dispositivo_sesion, "get", lambda *a, **k: Falsa())
     User = get_user_model()
     user = User.objects.create_user(username="v@v.co", email="v@v.co", password="x")
     client.force_login(user)
@@ -435,7 +435,7 @@ def test_vivo_sin_comedero_avisa(client, monkeypatch):
     def falla(*a, **k):
         raise requests_module.ConnectionError("sin red")
 
-    monkeypatch.setattr(views.requests, "get", falla)
+    monkeypatch.setattr(views._dispositivo_sesion, "get", falla)
     User = get_user_model()
     user = User.objects.create_user(username="w@w.co", email="w@w.co", password="x")
     client.force_login(user)
@@ -501,7 +501,7 @@ def test_capturar_toma_guarda_la_foto_y_el_vector(client, monkeypatch):
         def raise_for_status(self):
             return None
 
-    monkeypatch.setattr(views.requests, "get", lambda *a, **k: Respuesta())
+    monkeypatch.setattr(views._dispositivo_sesion, "get", lambda *a, **k: Respuesta())
 
     User = get_user_model()
     user = User.objects.create_user(username="c@c.co", email="c@c.co", password="x")
@@ -533,7 +533,7 @@ def test_capturar_reemplaza_la_misma_toma(client, monkeypatch):
         def raise_for_status(self):
             return None
 
-    monkeypatch.setattr(views.requests, "get", lambda *a, **k: Respuesta())
+    monkeypatch.setattr(views._dispositivo_sesion, "get", lambda *a, **k: Respuesta())
 
     User = get_user_model()
     user = User.objects.create_user(username="d2@d.co", email="d2@d.co", password="x")
@@ -559,7 +559,7 @@ def test_capturar_avisa_si_la_camara_no_responde(client, monkeypatch):
     def falla(*a, **k):
         raise requests_module.ConnectionError("sin camara")
 
-    monkeypatch.setattr(views.requests, "get", falla)
+    monkeypatch.setattr(views._dispositivo_sesion, "get", falla)
     User = get_user_model()
     user = User.objects.create_user(username="e2@e.co", email="e2@e.co", password="x")
     pet = Pet.objects.create(owner=user, name="Nube", species="cat", weight_kg=4)

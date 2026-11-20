@@ -462,6 +462,11 @@ def feeder_delete(request, pk):
 
 # --- vista en vivo: peso y camara del ESP32 -------------------------------
 
+# Reusar una sola conexion con el ESP32: con este enlace cada handshake TCP
+# nuevo cuesta segundos, y se pedia uno por cada foto.
+_dispositivo_sesion = requests.Session()
+
+
 def _dispositivo():
     """IP del comedero: la que anota la Raspberry, o la del .env como respaldo."""
     from pathlib import Path
@@ -489,7 +494,7 @@ def live_state(request):
     if not settings.IS_LOCAL:
         raise Http404("Sin equipo local.")
     try:
-        respuesta = requests.get(_dispositivo() + "/api/state", timeout=(3, 8))
+        respuesta = _dispositivo_sesion.get(_dispositivo() + "/api/state", timeout=(3, 8))
         respuesta.raise_for_status()
         return JsonResponse(respuesta.json())
     except requests.RequestException as exc:
@@ -502,7 +507,7 @@ def live_video(request):
     if not settings.IS_LOCAL:
         raise Http404("Sin equipo local.")
     try:
-        estado = requests.get(_dispositivo() + "/api/state", timeout=(3, 8)).json()
+        estado = _dispositivo_sesion.get(_dispositivo() + "/api/state", timeout=(3, 8)).json()
     except (requests.RequestException, ValueError):
         raise Http404("comedero sin respuesta")
 
@@ -549,7 +554,7 @@ def _foto_del_equipo(ancho=15) -> bytes:
     ultimo = None
     for _ in range(2):
         try:
-            respuesta = requests.get(
+            respuesta = _dispositivo_sesion.get(
                 _dispositivo() + "/capture?size=vga", timeout=(4, ancho)
             )
             respuesta.raise_for_status()
