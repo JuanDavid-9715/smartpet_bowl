@@ -502,6 +502,8 @@ def test_capturar_toma_guarda_la_foto_y_el_vector(client, monkeypatch):
             return None
 
     monkeypatch.setattr(views._dispositivo_sesion, "get", lambda *a, **k: Respuesta())
+    # La imagen sintetica no tiene animal: se simula que el detector lo ve.
+    monkeypatch.setattr(views.features, "detecta_animal", lambda *a, **k: True)
 
     User = get_user_model()
     user = User.objects.create_user(username="c@c.co", email="c@c.co", password="x")
@@ -534,6 +536,7 @@ def test_capturar_reemplaza_la_misma_toma(client, monkeypatch):
             return None
 
     monkeypatch.setattr(views._dispositivo_sesion, "get", lambda *a, **k: Respuesta())
+    monkeypatch.setattr(views.features, "detecta_animal", lambda *a, **k: True)
 
     User = get_user_model()
     user = User.objects.create_user(username="d2@d.co", email="d2@d.co", password="x")
@@ -582,3 +585,30 @@ def test_capturar_no_existe_en_la_nube(client):
 
     assert client.get(reverse("pets:photo_preview", args=[pet.pk])).status_code == 404
     assert client.post(reverse("pets:photo_capture", args=[pet.pk, "front"])).status_code == 404
+
+
+@pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
+def test_capturar_rechaza_si_no_hay_animal(client, monkeypatch):
+    """Una toma sin mascota no debe guardarse: ensuciaria el descriptor."""
+    from django.urls import reverse
+
+    from pets import views
+
+    class Respuesta:
+        content = _jpeg_falso()
+
+        def raise_for_status(self):
+            return None
+
+    monkeypatch.setattr(views._dispositivo_sesion, "get", lambda *a, **k: Respuesta())
+    monkeypatch.setattr(views.features, "detecta_animal", lambda *a, **k: False)
+
+    User = get_user_model()
+    user = User.objects.create_user(username="g2@g.co", email="g2@g.co", password="x")
+    pet = Pet.objects.create(owner=user, name="Jiru", species="cat", weight_kg=10)
+    client.force_login(user)
+
+    respuesta = client.post(reverse("pets:photo_capture", args=[pet.pk, "front"]))
+    assert respuesta.status_code == 302
+    assert pet.photos.count() == 0

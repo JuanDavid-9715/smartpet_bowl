@@ -53,6 +53,20 @@ def _detector(path=None):
     return net
 
 
+def detecta_animal(bgr, confidence=0.30) -> bool:
+    """True si el detector ve un gato o un perro en la imagen."""
+    net = _detector()
+    if net is None:
+        return True  # sin modelo no se puede juzgar: no se bloquea al usuario
+    net.setInput(cv2.dnn.blobFromImage(bgr, 1 / 255.0, (640, 640), swapRB=True, crop=False))
+    salida = net.forward()[0].T
+    for fila in salida:
+        clase = int(np.argmax(fila[4:]))
+        if clase in ANIMAL_CLASSES and float(fila[4 + clase]) >= confidence:
+            return True
+    return False
+
+
 def crop_animal(bgr, confidence=0.30):
     """Devuelve el recorte del animal detectado, o la imagen completa."""
     net = _detector()

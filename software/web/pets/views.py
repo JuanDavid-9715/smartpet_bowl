@@ -596,6 +596,16 @@ def pet_capture(request, pk, pose):
         messages.error(request, "La camara del plato no respondio: %s" % exc)
         return redirect("pets:photos", pk=pet.pk)
 
+    # Sin animal en el cuadro la toma no sirve: el descriptor acabaria
+    # comparando el fondo y confundiendo una mascota con la otra.
+    if not features.detecta_animal(features.decode_bgr(datos)):
+        messages.error(
+            request,
+            "No se detecto una mascota en la toma. Acerrala al comedero, que llene "
+            "el cuadro y que se vea nitida, y vuelve a intentarlo.",
+        )
+        return redirect("pets:photos", pk=pet.pk)
+
     vector = embedding.describe_bytes(datos)
     puntos = features.encode(features.descriptors(features.decode_bgr(datos)))
 
