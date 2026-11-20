@@ -4,7 +4,7 @@ Este proyecto usa KiCad únicamente para el esquemático eléctrico. **No se fab
 
 ## Archivos
 
-- `smartpet_bowl.kicad_sch` — esquemático del comedero, hoja única A2, **rev 6**.
+- `smartpet_bowl.kicad_sch` — esquemático del comedero, hoja única A2, **rev 7**.
 - `smartpet_bowl.kicad_pro` — proyecto de KiCad.
 - `sym-lib-table` — registra la biblioteca propia del proyecto.
 - `libraries/smartpet_bowl.kicad_sym` — símbolos de los módulos.
@@ -47,10 +47,10 @@ No son conectores genéricos con `Pin_1..16`.
 | GPIO | Uso |
 |---|---|
 | 4, 5, 6, 7, 15, 16, 17, 18, 8, 9, 10, 11, 12, 13 | Cámara (SIOD, SIOC, VSYNC, HREF, XCLK, Y9, Y8, Y7, Y4, Y3, Y5, Y2, Y6, PCLK) |
-| 14 | L298N IN1 |
-| 38 | L298N IN2 |
+| 14 | Servo SG90 |
+| 47 | L298N IN1 |
+| 48 | L298N IN2 |
 | 21 | Buzzer |
-| 47 | Servo SG90 |
 | 39, 40 | HX711 SCK, DT |
 | 1, 2 | VL53L0X SCL, SDA |
 | 41, 42 | VL53L0X XSHUT, GPIO1 |
@@ -64,8 +64,11 @@ cámara van marcados como internos: los genera la placa desde 5 V y no se cablea
 **35, 36 y 37 son el PSRAM del módulo y no se cablean.** El resto de pines libres
 lleva aspa (`no_connect`), que es como KiCad dice "libre a propósito".
 
-`38`, `39` y `40` son además `SD_CMD`, `SD_CLK` y `SD_DATA`: **con la celda y el
-motor conectados no se puede usar la tarjeta SD**. El video va por WiFi.
+`39` y `40` son además `SD_CLK` y `SD_DATA`: **con la celda conectada no se puede
+usar la tarjeta SD**. El video va por WiFi.
+
+`48` comparte pin con el **LED WS2812** de la placa: sirve como salida, pero el
+LED puede parpadear cuando el motor cambia de estado.
 
 ## Por qué IN1 e IN2, si no hay reversa
 
@@ -105,8 +108,9 @@ borne es una entrada y el módulo toma los 5 V del USB.
   de la placa está hecho para 5 V. Que un GPIO aguante 5 V un rato no significa
   que esté dentro de especificación: el diodo de protección conduce y el daño se
   acumula.
-- **HX711 a 5 V**: su salida `DT` llega a 5 V. Entre `DT` y GPIO40 hace falta un
-  divisor (por ejemplo 10 kΩ / 20 kΩ) o el pin queda fuera de rango.
+- **HX711 a 5 V**: su salida `DT` llega a 5 V y GPIO40 no admite más de 3.6 V.
+  El divisor **está dibujado en el plano**: R1 = 10 kΩ y R2 = 20 kΩ, que dejan
+  `DT` en 3.33 V. Sin esas dos resistencias el pin queda fuera de especificación.
 - **Servo**: el SG90 consume 220 mA en movimiento y **650 mA en bloqueo**. Un
   puerto USB 2.0 entrega 500 mA y el ESP32 con WiFi ya pide ~250 mA. Si la placa
   se reinicia al mover el servo, ese es el motivo: hay que darle al servo su

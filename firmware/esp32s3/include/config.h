@@ -15,10 +15,10 @@
 #define FEEDER_CODE "SPB-42"
 
 // --- Actuadores ----------------------------------------------------------
-#define PIN_SERVO 47            // SG90, PWM. (Antes MG996R; ahora SG90)
+#define PIN_SERVO 14            // SG90, PWM
 #define PIN_BUZZER 21           // modulo buzzer activo, I/O
-#define PIN_MOTOR_IN1 14        // L298N IN1
-#define PIN_MOTOR_IN2 38        // L298N IN2  <- FALTA CABLEARLO
+#define PIN_MOTOR_IN1 47        // L298N IN1
+#define PIN_MOTOR_IN2 48        // L298N IN2 (comparte pin con el LED WS2812 de la placa)
 #define PIN_MOTOR_ENA -1        // -1 = ENA puenteado a 5V (sin control de velocidad)
 
 // --- Sensores ------------------------------------------------------------

@@ -49,22 +49,26 @@ verifico contra la documentacion oficial de Freenove.
 | 8, 9, 10, 11, 12, 13 | Camara Y4, Y3, Y5, Y2, Y6, PCLK | ok |
 | 15 | Camara XCLK | ok |
 | 16, 17, 18 | Camara Y9, Y8, Y7 | ok |
-| 14 | L298N IN1 | ok |
-| **38** | **L298N IN2** | **FALTA CABLEAR** |
+| 14 | Servo SG90 PWM | ok |
+| 47 | L298N IN1 | ok |
+| 48 | L298N IN2 | ok (comparte el LED WS2812 de la placa) |
 | 21 | Buzzer I/O | ok |
-| 47 | Servo SG90 PWM | ok |
 | 39 | HX711 SCK | ok |
-| 40 | HX711 DT | ok |
+| 40 | HX711 DT | ok, con divisor 10k/20k antes del pin |
 | 1 | VL53L0X SCL | ok |
 | 2 | VL53L0X SDA | ok |
 | 41 | VL53L0X XSHUT | ok (debe ir en alto) |
 | 42 | VL53L0X GPIO1 | ok (no se usa) |
 | 35, 36, 37 | PSRAM interno | **PROHIBIDO USAR** |
 
-**38, 39 y 40 son tambien SD_CMD, SD_CLK y SD_DATA** en esta placa. Como el motor
-y la celda de carga los usan, **no se puede insertar la tarjeta SD** al mismo
-tiempo: el bus se comparte y el pesaje se corrompe. La captura de video va por
-WiFi, no hace falta la SD.
+**38, 39 y 40 son tambien SD_CMD, SD_CLK y SD_DATA** en esta placa. La celda de
+carga usa 39 y 40, asi que **no se puede insertar la tarjeta SD**: el bus se
+comparte y el pesaje se corrompe. La captura de video va por WiFi, no hace falta
+la SD.
+
+**GPIO48 es el dato del LED WS2812 de la placa.** Se puede usar como salida para
+IN2, pero el LED puede encenderse o parpadear cuando el motor cambia de estado.
+No danan nada: es el LED de la placa haciendo de antena.
 
 **ENA del L298N: puenteado a 5 V con el jumper.** Asi el motor gira a tope y no
 hace falta un GPIO. La dosificacion la controla la celda de carga, no la
@@ -82,8 +86,9 @@ Edita `include/config.h`:
 
 ## Avisos electricos
 
-- **HX711 alimentado a 5 V**: su salida DT queda a 5 V y el ESP32 tolera 3.6 V.
-  Alimenta el HX711 a **3.3 V** o pon un divisor en DT.
+- **HX711 alimentado a 5 V**: su salida DT queda a 5 V y un GPIO del ESP32-S3
+  tolera 3.6 V como maximo absoluto. Con un divisor 10 k / 20 k la tension baja
+  a 3.33 V. Sin divisor el pin queda fuera de especificacion.
 - **VL53L0X a 5 V**: solo seguro si el modulo trae regulador (GY-VL53L0XV2 lo trae).
 - **Servo y motor con fuente aparte**: el SG90 pide ~700 mA de pico y el motor
   mas. La salida de 5 V del L298N no alcanza para el ESP32 con esa carga.
