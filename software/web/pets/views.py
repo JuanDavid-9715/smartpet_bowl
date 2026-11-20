@@ -607,7 +607,11 @@ def pet_capture(request, pk, pose):
         raise Http404("Toma desconocida.")
 
     try:
-        datos = _foto_del_equipo()
+        # QVGA y no VGA: cambiar de tamano reinicia la exposicion de la camara y el
+    # primer cuadro sale casi negro. Medido: VGA daba brillo 12 y nitidez 4;
+    # QVGA del mismo momento, brillo 119 y nitidez 37. Ademas un VGA tarda 17 s
+    # en este enlace y la mitad llegan truncados.
+    datos = _foto_del_equipo(tamano="qvga")
     except requests.RequestException as exc:
         messages.error(request, "La camara del plato no respondio: %s" % exc)
         return redirect("pets:photos", pk=pet.pk)

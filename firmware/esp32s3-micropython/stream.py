@@ -151,16 +151,18 @@ def _jpeg(sock, camara, params):
     try:
         size = _apply(camara, params)
         if size != _ultimo_size:
-            # Tras cambiar de tamano el primer cuadro todavia sale con el
-            # anterior. Se descarta para que la foto tenga el tamano pedido.
-            try:
-                cam.frame(camara)
-            except OSError:
-                pass
-            try:
-                camara.free_buffer()
-            except OSError:
-                pass
+            # Tras cambiar de tamano la camara tarda unos cuadros en ajustar la
+            # exposicion: el primero sale casi negro (brillo 12) y el tercero ya
+            # sale bien (brillo 123). Se descartan tres.
+            for _ in range(3):
+                try:
+                    cam.frame(camara)
+                except OSError:
+                    break
+                try:
+                    camara.free_buffer()
+                except OSError:
+                    pass
             _ultimo_size = size
         try:
             buf = bytes(cam.frame(camara))
