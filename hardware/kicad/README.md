@@ -4,34 +4,45 @@ Este proyecto usa KiCad únicamente para el esquemático eléctrico. **No se fab
 
 ## Archivos
 
-- `smartpet_bowl.kicad_sch` — esquemático del comedero, hoja única A2, **rev 4**.
-- `exports/smartpet_bowl.pdf` — plano para imprimir o anexar al documento.
-- `exports/smartpet_bowl.svg` — plano vectorial para presentaciones.
-- `exports/smartpet_bowl.png` — imagen del plano para el informe.
+- `smartpet_bowl.kicad_sch` — esquemático del comedero, hoja única A2, **rev 5**.
+- `smartpet_bowl.kicad_pro` — proyecto de KiCad.
+- `sym-lib-table` — registra la biblioteca propia del proyecto.
+- `libraries/smartpet_bowl.kicad_sym` — símbolos de los módulos.
+- `exports/` — PDF, SVG y PNG del plano.
 
-## Qué representa
+## Por qué hay biblioteca propia
 
-El comedero se arma con **módulos comprados** unidos por cables, no con componentes soldados. Por eso el plano es de conectores y nets: cada módulo aparece con los terminales que tiene físicamente.
+Los módulos del comedero no son chips: son placas con regulador y borneras. KiCad
+sí trae los chips pelados (`Driver_Motor:L298HN`, `Analog_ADC:HX711`,
+`Sensor_Distance:VL53L1CXV0FY1`), pero usarlos aquí produciría un plano que no
+corresponde al montaje y, peor, con dos errores eléctricos:
 
-La fuente del pinout es el **PDF oficial de Freenove** (`Datasheet/ESP32-S3 Pinout.pdf`), no una tabla de memoria. Los 40 pines de la placa están en el orden real de los dos bornes.
+1. **El VL53L0X pelado tolera 3.6 V** en `AVDD` y `AVDDVCSEL`. El montaje es de
+   5 V porque el módulo trae su regulador. Dibujar el chip con 5 V es un plano
+   que quema el sensor.
+2. **El riel de +5 V de todo el sistema sale del regulador del módulo L298N.**
+   En el chip pelado `Vss` es una *entrada*: el plano se quedaría sin fuente de
+   5 V y nadie alimentaría el ESP32.
 
-| Ref | Módulo | Nets |
+Por eso cada módulo se dibuja como dispositivo: cuerpo con el nombre, un pin por
+terminal con su nombre real (`IN1`, `DT`, `XSHUT`…) y numerado como el borne.
+No son conectores genéricos con `Pin_1..16`.
+
+| Ref | Dispositivo | Simbolo |
 |---|---|---|
-| U1 | Freenove ESP32-S3-WROOM CAM (2×20) | ver tabla de pines |
-| J1 | Cámara OV2640 (FPC) | `GPIO4`–`GPIO18`, `+3V3`, `GND` |
-| J2 | L298N | `GPIO14`, `GPIO38`, `+12V`, `+5V`, `GND`, `MOTOR_A`, `MOTOR_B` |
-| M1 | Motor DC del tornillo sin fin | `MOTOR_A`, `MOTOR_B` |
-| J3 | Servo SG90 de la tapa | `GPIO47`, `+5V`, `GND` |
-| J4 | Módulo buzzer activo | `GPIO21`, `+5V`, `GND` |
-| J5 | HX711 | `+3V3`, `GPIO40`, `GPIO39`, `GND`, `LC_E±`, `LC_A±` |
-| J6 | Celda de carga 5 kg | `LC_E+`, `LC_E-`, `LC_A-`, `LC_A+` |
-| J7 | VL53L0X | `+5V`, `GND`, `GPIO1`, `GPIO2`, `GPIO42`, `GPIO41` |
-| J8 | Fuente 12 V | `+12V`, `GND` |
-| C1 | 1000 µF 25 V | `+12V`, `GND` |
-| C2 | 470 µF 16 V | `+5V`, `GND` |
-| C3–C5 | 100 nF | `+3V3`, `+5V`, `GND` |
+| U1 | Freenove ESP32-S3-WROOM CAM | propio, 40 pines en el orden del borne |
+| U2 | L298N | propio, borneras del módulo |
+| U3 | HX711 | propio, 4 pines al micro y 4 a la celda |
+| U4 | VL53L0X | propio, 6 terminales |
+| CAM1 | OV2640 (FPC) | propio, 14 señales + alimentación |
+| LC1 | Celda de carga 5 kg | propio, 4 hilos |
+| BZ1 | Buzzer activo | propio, 3 terminales |
+| M1 | Motor del tornillo sin fin | `Motor:Motor_DC` |
+| M2 | Servo SG90 | `Motor:Motor_Servo` |
+| J1 | Entrada 12 V | `Connector:Barrel_Jack` |
+| C1–C3 | Condensadores | `Device:C_Polarized`, `Device:C` |
 
-### Pines del ESP32-S3 usados
+## Pines del ESP32-S3 usados
 
 | GPIO | Uso |
 |---|---|
@@ -44,25 +55,32 @@ La fuente del pinout es el **PDF oficial de Freenove** (`Datasheet/ESP32-S3 Pino
 | 1, 2 | VL53L0X SCL, SDA |
 | 41, 42 | VL53L0X XSHUT, GPIO1 |
 
-**35, 36 y 37 son el PSRAM del módulo y no se cablean.** El resto queda libre y marcado con aspa (`no_connect`), que es como KiCad dice "libre a propósito".
+Los números de pin del símbolo **son los del borne físico** de la placa, así que
+se pueden seguir con el cable en la mano.
 
-`38`, `39` y `40` son además `SD_CMD`, `SD_CLK` y `SD_DATA` en esta placa: **con la celda de carga y el motor conectados no se puede usar la tarjeta SD**. El video va por WiFi, así que no hace falta.
+**No se usa 3.3 V en ninguna parte.** El pin `3V3` de la placa y el del FPC de la
+cámara van marcados como internos: los genera la placa desde 5 V y no se cablean.
+
+**35, 36 y 37 son el PSRAM del módulo y no se cablean.** El resto de pines libres
+lleva aspa (`no_connect`), que es como KiCad dice "libre a propósito".
+
+`38`, `39` y `40` son además `SD_CMD`, `SD_CLK` y `SD_DATA`: **con la celda y el
+motor conectados no se puede usar la tarjeta SD**. El video va por WiFi.
 
 ## Decisiones de diseño
 
-- **Tapa y dosificador son mecanismos distintos.** El servo abre la tapa; el motor DC mueve un tornillo sin fin que dosifica. Una sola compuerta no puede hacer las dos cosas: si queda abierta, la comida cae libre y se pierde el control de porción.
-- **Tornillo sin fin en lugar de compuerta estranguladora.** El tornillo mueve un volumen casi constante por vuelta y no depende de la gravedad ni del nivel del depósito. Una compuerta por gravedad atasca croquetas irregulares y su caudal cambia con la humedad.
-- **El lazo lo cierra la celda de carga, no el motor.** El motor gira y la celda decide cuándo parar, así que la precisión viene de la báscula. Por eso ENA queda con el jumper a 5 V: no hace falta regular velocidad.
-- **Solo el canal A del L298N.** El motor es uno solo, así que IN3, IN4, OUT3 y OUT4 quedan libres.
-- **El servo va a 5 V con condensador.** El SG90 pide picos de ~700 mA; C2 absorbe ese pico para que el ESP32 no se reinicie.
-- **Buzzer activo al GPIO, sin resistencia ni amplificador.** Es un módulo con transistor: consume pocos miliamperios de la señal y no necesita etapa de potencia. Se descartó el MAX98357A por no sumar componentes.
+- **Tapa y dosificador son mecanismos distintos.** El servo abre la tapa; el motor mueve el tornillo sin fin.
+- **Tornillo sin fin en lugar de compuerta.** Mueve un volumen casi constante por vuelta, no depende de la gravedad y no atasca croquetas irregulares.
+- **El lazo lo cierra la celda de carga.** El motor gira y la báscula decide cuándo parar. Por eso `ENA` queda con el jumper a 5 V.
+- **Solo el canal A del L298N.** Quedan libres IN3, IN4, ENB, OUT3 y OUT4.
+- **C1 en 12 V y C2 en 5 V** absorben los picos del motor y del servo para que el ESP32 no se reinicie.
 - **El ESP32-S3 no decide nada.** Recibe comandos, mueve servo y motor, pesa y reporta.
 
-## Advertencia sobre el L298N
+## Avisos eléctricos
 
-El L298N tiene una caída interna de **1,8 a 3 V**. Con alimentación de 5 V el motor recibe apenas 2–3 V, así que gira lento y con poco par.
-
-Para este proyecto eso es aceptable **si el motor es de engranaje reductor**, porque lo que necesitamos es torque a baja velocidad, no velocidad. Si en las pruebas el tornillo se atasca, la solución no es otro driver: es **subir el bloque de potencia a 9–12 V**, que es justo lo que hace J8.
+- **HX711 a 5 V**: su salida `DT` llega a 5 V y GPIO40 tolera 3.6 V. Hace falta un divisor o alimentar el módulo a 3.3 V (esto último ya no es posible sin ese riel).
+- **Servo y motor**: el SG90 pide ~700 mA de pico. La salida de 5 V del L298N no debería alimentar además al ESP32 con esa carga; conviene una fuente aparte.
+- **No conectar el USB del ESP32 y el 5 V del L298N al mismo tiempo.**
 
 ## Regenerar los planos
 
@@ -73,8 +91,15 @@ kicad-cli sch export pdf --output /tmp/plano/smartpet_bowl.pdf hardware/kicad/sm
 
 ## Verificación eléctrica
 
-`kicad-cli sch erc` reporta **0 infracciones** en la rev 4, con todas las comprobaciones activas.
+`kicad-cli sch erc` reporta **0 infracciones**.
 
-Ese resultado no salió gratis: la rev 3 tenía 17 avisos porque la celda de carga llegaba a etiquetas que no existían en ningún otro pin y porque el ESP32 no tenía pines para `GPIO1` y `GPIO2`. Ahora el HX711 se dibuja como módulo de 8 terminales (los 4 del micro y los 4 de la celda) y la placa tiene los 40 pines reales, así que cada net toca al menos dos pines y los que sobran llevan aspa.
+En el camino aparecieron y se corrigieron: la celda conectada a etiquetas sin par
+(rev 3), pines del ESP32 sin correspondencia, y en la rev 5 un GND etiquetado por
+error sobre `OUT2` y sobre `+12V`, que el ERC detectó como corto entre `+12V` y
+`GND`.
 
-Antes de llevar esto a una placa real habría que asignar footprints y añadir los `PWR_FLAG`.
+Cada señal tiene exactamente dos extremos: un pin del ESP32 y un terminal del
+módulo. Las redes `GND` (12), `+5V` (8) y `+12V` (3) son las únicas con más de
+dos puntos.
+
+Antes de llevar esto a una placa real habría que asignar footprints.

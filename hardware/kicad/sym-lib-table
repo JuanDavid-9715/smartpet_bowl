@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "smartpet_bowl")(type "KiCad")(uri "${KIPRJMOD}/libraries/smartpet_bowl.kicad_sym")(options "")(descr "Simbolos de los modulos del SmartPet Bowl"))
+)
