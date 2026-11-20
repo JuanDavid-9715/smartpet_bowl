@@ -40,6 +40,14 @@ SIZES = {
     "hd": FrameSize.HD,
 }
 
+# Para mirar mientras se encuadra no hace falta 320x240: con 160x120 el JPEG
+# pesa la cuarta parte y llega mucho mas rapido. Es lo unico que hace usable la
+# vista previa con este enlace.
+try:
+    SIZES["qqvga"] = FrameSize.QQVGA
+except AttributeError:
+    pass
+
 
 def _send_all(sock, data):
     view = memoryview(data)

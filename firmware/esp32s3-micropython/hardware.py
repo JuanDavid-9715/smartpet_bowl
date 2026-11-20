@@ -56,7 +56,8 @@ _offset = 0
 _dosis_inicio = 0
 _publicar = None
 # fases: "quieto" -> "llenando" (tapa cerrada) -> "esperando" (tapa abierta)
-_comida = {"fase": "quieto", "pet": "", "inicio_g": 0.0, "inicio_ms": 0, "avisado": False}
+_comida = {"fase": "quieto", "pet": "", "inicio_g": 0.0, "inicio_ms": 0,
+           "avisado": False, "ultimo_aviso": 0, "visto_ms": 0}
 _escala = config.HX711_SCALE
 _arrancado = False
 
@@ -233,6 +234,8 @@ def _bucle():
                 _comida["inicio_g"] = STATE["grams"]
                 _comida["inicio_ms"] = time.ticks_ms()
                 _comida["avisado"] = False
+                _comida["ultimo_aviso"] = 0
+                _comida["visto_ms"] = time.ticks_ms()
                 _mover_servo(config.TAPA_ABIERTA)
                 _avisar("peso", {"gramos": STATE["grams"]})
                 print("Plato servido: se abre la tapa y se espera a", _comida["pet"])
@@ -241,17 +244,27 @@ def _bucle():
                 ahora = time.ticks_ms()
 
                 if STATE["presence"]:
-                    if not _comida["avisado"]:
-                        # La Raspberry intenta identificarla; si no es la
-                        # mascota responde "cerrar" y la tapa se cierra.
+                    _comida["visto_ms"] = ahora
+                    # Se avisa cada REINTENTO_MS y no una sola vez: si la
+                    # primera toma no alcanzo (la mascota se movio, la foto
+                    # llego borrosa) hay otra oportunidad sin tener que quitar
+                    # y volver a poner la mascota delante.
+                    if (
+                        not _comida["avisado"]
+                        or time.ticks_diff(ahora, _comida["ultimo_aviso"]) > config.REINTENTO_MS
+                    ):
                         _comida["avisado"] = True
+                        _comida["ultimo_aviso"] = ahora
                         _avisar("presencia", {"distancia_mm": STATE["distance"]})
                 else:
-                    _comida["avisado"] = False
-                    # Se fue lo que habia delante: si la Pi cerro la tapa,
-                    # vuelve a abrirse para esperar a la mascota correcta.
-                    if STATE["servo"] != config.TAPA_ABIERTA:
-                        _mover_servo(config.TAPA_ABIERTA)
+                    # Sin presencia se espera GRACE_MS antes de reabrir, para
+                    # que un parpadeo del sensor no haga abrir y cerrar la tapa
+                    # todo el tiempo.
+                    fuera = time.ticks_diff(ahora, _comida["visto_ms"])
+                    if fuera > config.GRACE_MS:
+                        _comida["avisado"] = False
+                        if STATE["servo"] != config.TAPA_ABIERTA:
+                            _mover_servo(config.TAPA_ABIERTA)
 
                 transcurrido = time.ticks_diff(ahora, _comida["inicio_ms"]) // 1000
                 STATE["meal_elapsed"] = transcurrido

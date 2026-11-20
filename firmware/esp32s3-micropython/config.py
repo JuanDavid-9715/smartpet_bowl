@@ -49,7 +49,8 @@ DOSIS_TIMEOUT_MS = 30000 # corte de seguridad si la celda nunca llega al objetiv
 
 # --- Ciclo de comida (para la simulacion, corto) --------------------------
 GRACE_MS = 8000          # cuanto puede faltar la mascota sin cerrar la tapa
-MEAL_MAX_MS = 60000      # tope de una comida completa
+MEAL_MAX_MS = 30000      # tope de una comida completa (30 s: mas largo no aporta en la demo)
+REINTENTO_MS = 4000      # cada cuanto se reintenta identificar con la mascota delante
 PIN_BUZZER = 21
 PIN_MOTOR_IN1 = 47
 PIN_MOTOR_IN2 = 48

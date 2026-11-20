@@ -59,6 +59,12 @@ class FeedingService:
 
     # --- llegada del animal ----------------------------------------------
     def on_presence(self) -> None:
+        # Con una comida ya en curso no se vuelve a identificar ni a servir. La
+        # placa reintenta el aviso cada pocos segundos; sin esta guarda se
+        # serviria la misma racion varias veces.
+        if self.sessions:
+            return
+
         # Si ya hay una identificacion en curso se ignora el aviso: la mascota
         # sigue delante y el sensor repite. Encadenarlas era lo que hacia que el
         # servicio pareciera congelado.

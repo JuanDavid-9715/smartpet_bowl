@@ -511,7 +511,7 @@ def live_photo(request):
     if not settings.IS_LOCAL:
         raise Http404("Sin equipo local.")
     try:
-        datos = _foto_del_equipo(ancho=12, tamano="qvga")
+        datos = _foto_del_equipo(ancho=12, tamano="qqvga")
     except requests.RequestException:
         raise Http404("La camara del comedero no responde.")
     return HttpResponse(datos, content_type="image/jpeg")
@@ -587,9 +587,10 @@ def pet_preview(request, pk):
         raise Http404("Sin equipo local.")
     get_object_or_404(_pets(request), pk=pk)
     try:
-        # La vista previa va en QVGA: encuadrar no necesita VGA y pesa la mitad.
-        # La foto que se guarda si se pide en VGA.
-        datos = _foto_del_equipo(ancho=12, tamano="qvga")
+        # La vista previa va en QQVGA (160x120): encuadrar no necesita mas y
+        # cada envio de bytes bloquea la placa, que es lo que hacia lenta la
+        # camara. La foto que se guarda se pide en QVGA.
+        datos = _foto_del_equipo(ancho=12, tamano="qqvga")
     except requests.RequestException:
         raise Http404("La camara del plato no responde.")
     return HttpResponse(datos, content_type="image/jpeg")

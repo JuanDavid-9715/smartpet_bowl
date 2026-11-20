@@ -111,8 +111,8 @@ background:var(--surface-alt);color:var(--muted)}
     </div>
     <div class="row" style="margin-top:10px">
       <span class="mini" style="margin:0">Calidad</span>
-      <button id="cal-fluido" class="primary">Fluido</button>
-      <button id="cal-nitido">Nitido</button>
+      <button id="cal-fluido">Fluido</button>
+      <button id="cal-nitido" class="primary">Nitido</button>
       <span class="mini" style="margin:0" id="cal-nota">320x240</span>
     </div>
     <div class="row" style="margin-top:10px">
@@ -327,16 +327,16 @@ var calidad = 'qvga';
 function cambiarCalidad(nueva) {
   calidad = nueva;
   imgCargada = false;
-  document.getElementById('cal-nota').textContent = nueva === 'vga' ? '640x480' : '320x240';
-  document.getElementById('cal-fluido').className = nueva === 'qvga' ? 'primary' : '';
-  document.getElementById('cal-nitido').className = nueva === 'vga' ? 'primary' : '';
+  document.getElementById('cal-nota').textContent = nueva === 'qvga' ? '320x240' : '160x120';
+  document.getElementById('cal-fluido').className = nueva === 'qqvga' ? 'primary' : '';
+  document.getElementById('cal-nitido').className = nueva === 'qvga' ? 'primary' : '';
   if (document.getElementById('img').style.display === 'block') {
     pedirFoto();
   }
 }
 
-document.getElementById('cal-fluido').onclick = function () { cambiarCalidad('qvga'); };
-document.getElementById('cal-nitido').onclick = function () { cambiarCalidad('vga'); };
+document.getElementById('cal-fluido').onclick = function () { cambiarCalidad('qqvga'); };
+document.getElementById('cal-nitido').onclick = function () { cambiarCalidad('qvga'); };
 
 function refrescar() {
   // Se usa despues de un comando: no encadena, para no abrir otra cadena de
