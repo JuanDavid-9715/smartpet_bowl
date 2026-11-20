@@ -4,7 +4,51 @@
 <a class="muted hero__link" style="font-size:13px" href="{% url 'pets:list' %}">&larr; Volver</a>
 <h1 style="margin-top:16px;font-size:30px">Fotos de {{ pet.name }}.</h1>
 <p class="lead" style="margin-top:10px">De aqui sale su vector de reconocimiento. Sube las tomas donde la camara del plato la va a ver.</p>
-<form method="post" enctype="multipart/form-data" style="margin-top:28px;max-width:640px">
+{% if is_local %}
+<h3 style="margin-top:30px">Registrar con la camara del plato</h3>
+<p class="muted" style="margin-top:6px;font-size:13px">
+  Pon a {{ pet.name }} frente al comedero, encuadra en la imagen y pulsa cada toma.
+  Se guardan al instante, sin descargar ni subir archivos.
+</p>
+<div class="grid grid--2" style="margin-top:16px;align-items:start;max-width:860px">
+  <div class="card" style="padding:14px">
+    <img id="vivo" alt="camara del plato"
+         src="{% url 'pets:photo_preview' pet.pk %}?t={{ photos|length }}"
+         style="width:100%;border-radius:10px;background:#04020a;aspect-ratio:4/3;object-fit:cover">
+    <p class="muted" style="font-size:11px;margin-top:8px" id="aviso-camara">Vista en vivo del comedero</p>
+  </div>
+  <div style="display:grid;gap:10px">
+    {% for pose, etiqueta, ayuda in poses %}
+      <form method="post" action="{% url 'pets:photo_capture' pet.pk pose %}" style="margin:0">
+        {% csrf_token %}
+        <button class="btn btn--primary" type="submit" style="width:100%;text-align:left">
+          Capturar &middot; {{ etiqueta }}
+        </button>
+        <p class="muted" style="font-size:11px;margin:6px 0 0">{{ ayuda }}</p>
+      </form>
+    {% endfor %}
+  </div>
+</div>
+<script>
+  (function () {
+    var img = document.getElementById('vivo');
+    var aviso = document.getElementById('aviso-camara');
+    if (!img) { return; }
+    setInterval(function () {
+      img.src = '{% url 'pets:photo_preview' pet.pk %}?t=' + Date.now();
+    }, 1200);
+    img.addEventListener('error', function () {
+      aviso.textContent = 'Sin imagen del comedero. Revisa que este encendido.';
+    });
+    img.addEventListener('load', function () {
+      aviso.textContent = 'Vista en vivo del comedero';
+    });
+  })();
+</script>
+{% endif %}
+
+<h3 style="margin-top:36px">O subir archivos</h3>
+<form method="post" enctype="multipart/form-data" style="margin-top:16px;max-width:640px">
   {% csrf_token %}
   {% if form.non_field_errors %}<ul class="errorlist">{{ form.non_field_errors }}</ul>{% endif %}
   <div class="grid grid--3" style="gap:16px">

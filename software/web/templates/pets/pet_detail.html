@@ -38,6 +38,7 @@
     <div style="display:flex;gap:12px;margin-top:26px;flex-wrap:wrap">
       <a class="btn btn--ghost btn--sm" href="{% url 'pets:edit' pet.pk %}">Editar ficha</a>
       <a class="btn btn--ghost btn--sm" href="{% url 'pets:ration' pet.pk %}">Racion</a>
+      <a class="btn btn--ghost btn--sm" href="{% url 'pets:photos' pet.pk %}">Fotos y reconocimiento</a>
       <a class="btn btn--ghost btn--sm" style="color:var(--error);border-color:var(--border)" href="{% url 'pets:archive' pet.pk %}">Archivar</a>
     </div>
   </div>

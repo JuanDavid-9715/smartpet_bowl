@@ -463,3 +463,122 @@ def test_el_panel_tecnico_no_existe_en_la_nube(client):
     ajustes = client.get(reverse("pets:settings"))
     assert ajustes.status_code == 200
     assert b"Panel tecnico" not in ajustes.content
+
+
+def _jpeg_falso(color=(180, 120, 70)):
+    """JPEG con textura: una imagen lisa no tiene puntos ORB que guardar."""
+    import io
+    import random
+
+    from PIL import Image, ImageDraw
+
+    imagen = Image.new("RGB", (320, 240), color)
+    lapiz = ImageDraw.Draw(imagen)
+    random.seed(11)
+    for _ in range(60):
+        x, y = random.randint(0, 300), random.randint(0, 220)
+        r = random.randint(5, 18)
+        lapiz.rectangle([x, y, x + r, y + r], fill=(random.randint(0, 255),
+                                                    random.randint(0, 255),
+                                                    random.randint(0, 255)))
+    buffer = io.BytesIO()
+    imagen.save(buffer, "JPEG")
+    return buffer.getvalue()
+
+
+@pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
+def test_capturar_toma_guarda_la_foto_y_el_vector(client, monkeypatch):
+    """El boton toma la foto desde la camara del plato, sin subir archivos."""
+    from django.urls import reverse
+
+    from pets import views
+    from pets.models import PetPhoto
+
+    class Respuesta:
+        content = _jpeg_falso()
+
+        def raise_for_status(self):
+            return None
+
+    monkeypatch.setattr(views.requests, "get", lambda *a, **k: Respuesta())
+
+    User = get_user_model()
+    user = User.objects.create_user(username="c@c.co", email="c@c.co", password="x")
+    pet = Pet.objects.create(owner=user, name="Jiru", species="cat", weight_kg=10)
+    client.force_login(user)
+
+    respuesta = client.post(reverse("pets:photo_capture", args=[pet.pk, "front"]))
+    assert respuesta.status_code == 302
+
+    foto = PetPhoto.objects.get(pet=pet, pose="front")
+    assert foto.image.name.endswith(".jpg")
+    assert len(foto.keypoints) > 0
+
+    pet.refresh_from_db()
+    assert pet.keypoints
+
+
+@pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
+def test_capturar_reemplaza_la_misma_toma(client, monkeypatch):
+    from django.urls import reverse
+
+    from pets import views
+    from pets.models import PetPhoto
+
+    class Respuesta:
+        content = _jpeg_falso()
+
+        def raise_for_status(self):
+            return None
+
+    monkeypatch.setattr(views.requests, "get", lambda *a, **k: Respuesta())
+
+    User = get_user_model()
+    user = User.objects.create_user(username="d2@d.co", email="d2@d.co", password="x")
+    pet = Pet.objects.create(owner=user, name="Armi", species="dog", weight_kg=31)
+    client.force_login(user)
+
+    client.post(reverse("pets:photo_capture", args=[pet.pk, "front"]))
+    client.post(reverse("pets:photo_capture", args=[pet.pk, "front"]))
+    client.post(reverse("pets:photo_capture", args=[pet.pk, "top"]))
+
+    assert PetPhoto.objects.filter(pet=pet, pose="front").count() == 1
+    assert pet.photos.count() == 2
+
+
+@pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
+def test_capturar_avisa_si_la_camara_no_responde(client, monkeypatch):
+    import requests as requests_module
+    from django.urls import reverse
+
+    from pets import views
+
+    def falla(*a, **k):
+        raise requests_module.ConnectionError("sin camara")
+
+    monkeypatch.setattr(views.requests, "get", falla)
+    User = get_user_model()
+    user = User.objects.create_user(username="e2@e.co", email="e2@e.co", password="x")
+    pet = Pet.objects.create(owner=user, name="Nube", species="cat", weight_kg=4)
+    client.force_login(user)
+
+    respuesta = client.post(reverse("pets:photo_capture", args=[pet.pk, "front"]))
+    assert respuesta.status_code == 302
+    assert pet.photos.count() == 0
+
+
+@pytest.mark.django_db
+@override_settings(IS_LOCAL=False)
+def test_capturar_no_existe_en_la_nube(client):
+    from django.urls import reverse
+
+    User = get_user_model()
+    user = User.objects.create_user(username="f2@f.co", email="f2@f.co", password="x")
+    pet = Pet.objects.create(owner=user, name="Jiru", species="cat", weight_kg=10)
+    client.force_login(user)
+
+    assert client.get(reverse("pets:photo_preview", args=[pet.pk])).status_code == 404
+    assert client.post(reverse("pets:photo_capture", args=[pet.pk, "front"])).status_code == 404

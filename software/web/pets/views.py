@@ -5,7 +5,9 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Sum
 import requests
 from django.conf import settings
-from django.http import Http404, JsonResponse, StreamingHttpResponse
+from django.core.files.base import ContentFile
+from django.http import Http404, HttpResponse, JsonResponse, StreamingHttpResponse
+from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -169,7 +171,16 @@ def pet_photos(request, pk):
             messages.success(request, f"{added} fotos guardadas. {pet.name} ya se puede reconocer.")
             return redirect("pets:ration", pk=pet.pk)
         form.add_error(None, "Sube al menos una foto.")
-    return render(request, "pets/pet_photos.html", {"pet": pet, "form": form, "photos": pet.photos.all()})
+    poses = [
+        ("front", "Frente al plato", "La cara y el hocico mirando al comedero."),
+        ("eating", "Comiendo", "Con el hocico dentro, como la ve la camara."),
+        ("top", "Desde arriba", "El lomo y el tamano, de espaldas al plato."),
+    ]
+    return render(
+        request,
+        "pets/pet_photos.html",
+        {"pet": pet, "form": form, "photos": pet.photos.all(), "poses": poses},
+    )
 
 
 @login_required
@@ -524,3 +535,61 @@ def live_video(request):
     )
     respuesta["Cache-Control"] = "no-store"
     return respuesta
+
+
+# --- registrar las tomas con la camara del plato --------------------------
+
+def _foto_del_equipo() -> bytes:
+    respuesta = requests.get(_dispositivo() + "/capture?size=vga", timeout=8)
+    respuesta.raise_for_status()
+    return respuesta.content
+
+
+@login_required
+def pet_preview(request, pk):
+    """Una foto suelta de la camara del plato, para encuadrar en vivo."""
+    if not settings.IS_LOCAL:
+        raise Http404("Sin equipo local.")
+    get_object_or_404(_pets(request), pk=pk)
+    try:
+        datos = _foto_del_equipo()
+    except requests.RequestException:
+        raise Http404("La camara del plato no responde.")
+    return HttpResponse(datos, content_type="image/jpeg")
+
+
+@login_required
+@require_POST
+def pet_capture(request, pk, pose):
+    """Guarda una toma hecha con la camara del plato, sin subir archivos."""
+    if not settings.IS_LOCAL:
+        raise Http404("Sin equipo local.")
+
+    pet = get_object_or_404(_pets(request), pk=pk)
+    if pose not in ("front", "eating", "top"):
+        raise Http404("Toma desconocida.")
+
+    try:
+        datos = _foto_del_equipo()
+    except requests.RequestException as exc:
+        messages.error(request, "La camara del plato no respondio: %s" % exc)
+        return redirect("pets:photos", pk=pet.pk)
+
+    vector = embedding.describe_bytes(datos)
+    puntos = features.encode(features.descriptors(features.decode_bgr(datos)))
+
+    # Reemplaza solo esa toma: las otras dos se conservan.
+    pet.photos.filter(pose=pose).delete()
+    foto = PetPhoto(pet=pet, pose=pose, embedding=vector, keypoints=puntos)
+    foto.image.save("%s-%s.jpg" % (pet.pk, pose), ContentFile(datos), save=True)
+
+    fotos = list(pet.photos.all())
+    pet.centroid = embedding.centroid([f.embedding for f in fotos])
+    pet.keypoints = features.combine([f.keypoints for f in fotos])
+    pet.save(update_fields=["centroid", "keypoints"])
+
+    messages.success(
+        request,
+        "Toma guardada. %s tiene %d de 3." % (pet.name, len(fotos)),
+    )
+    return redirect("pets:photos", pk=pet.pk)
