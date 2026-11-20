@@ -2,11 +2,28 @@
 
 import time
 
-from camera import Camera
+from camera import Camera, GainCeiling
 
 import config
 
 _instance = None
+
+
+def _setup(camara):
+    """Ajustes de poca luz.
+
+    La exposicion automatica del OV2640 ya llega a su maximo en una habitacion
+    oscura; lo que la limita es el techo de ganancia, que viene bajo. Subirlo
+    es lo que levanta la imagen: la media paso de 16 a 85 sobre 255.
+    """
+    try:
+        camara.set_gainceiling(getattr(GainCeiling, config.CAMERA_GAIN))
+    except (OSError, AttributeError, TypeError):
+        pass
+    try:
+        camara.set_brightness(config.CAMERA_BRIGHTNESS)
+    except (OSError, AttributeError, TypeError):
+        pass
 
 
 def camera():
@@ -14,6 +31,7 @@ def camera():
     global _instance
     if _instance is None:
         _instance = Camera(**config.CAMERA)
+        _setup(_instance)
     return _instance
 
 

@@ -10,6 +10,7 @@ size admite vga, svga o hd. Sirve para comparar fluidez contra nitidez sin
 volver a flashear: el enlace WiFi manda, no la camara.
 """
 
+import _thread
 import gc
 import socket
 import time
@@ -111,13 +112,14 @@ def _request(sock):
 def _apply(camara, params):
     """Ajusta tamano y calidad si vienen en la URL. Devuelve el nombre usado."""
     size = params.get("size", config.DEFAULT_SIZE)
-    if size in SIZES:
+    if size not in SIZES:
+        size = config.DEFAULT_SIZE
+    destino = SIZES[size]
+    if camara.get_frame_size() != destino:
         try:
-            camara.set_frame_size(SIZES[size])
+            camara.set_frame_size(destino)
         except OSError:
             size = config.DEFAULT_SIZE
-    else:
-        size = config.DEFAULT_SIZE
 
     quality = params.get("q")
     if quality:
@@ -163,7 +165,11 @@ def _stream(sock, camara, params):
 
     frames = 0
     while True:
-        buf = cam.frame(camara)
+        _cam_lock.acquire()
+        try:
+            buf = cam.frame(camara)
+        finally:
+            _cam_lock.release()
         try:
             part = "--%s\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n" % (
                 BOUNDARY,
@@ -210,11 +216,68 @@ def _status(sock, camara, ip):
     _send_text(sock, body, "application/json")
 
 
+_cam_lock = _thread.allocate_lock()
+_current_stream = None
+
+
+def _handle(client, ip):
+    """Atiende una peticion en su propio hilo."""
+    global _current_stream
+
+    path = "/"
+    try:
+        # Nagle retiene cada cuadro hasta 200 ms y el video se ve a saltos.
+        try:
+            client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            client.settimeout(8)
+        except OSError:
+            pass
+
+        path, params = _request(client)
+        camara = cam.camera()
+
+        if path.startswith("/stream"):
+            # El cliente mas reciente manda: se cierra el anterior y este toma
+            # la camara, asi recargar la pagina responde al instante.
+            previo = _current_stream
+            _current_stream = client
+            if previo is not None and previo is not client:
+                try:
+                    previo.close()
+                except OSError:
+                    pass
+            try:
+                _stream(client, camara, params)
+            finally:
+                if _current_stream is client:
+                    _current_stream = None
+        elif path.startswith("/capture"):
+            _cam_lock.acquire()
+            try:
+                _jpeg(client, camara, params)
+            finally:
+                _cam_lock.release()
+        elif path.startswith("/status"):
+            _status(client, camara, ip)
+        else:
+            _page(client, camara, params)
+
+    except Exception as error:  # noqa: BLE001 - el visor no debe caerse
+        if path != "/stream":          # un stream cortado es normal
+            print("error atendiendo %s: %r" % (path, error))
+    finally:
+        try:
+            client.close()
+        except OSError:
+            pass
+        gc.collect()
+
+
 def serve(ip):
     server = socket.socket()
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(("0.0.0.0", config.HTTP_PORT))
-    server.listen(2)
+    server.listen(4)
 
     print("Visor listo: http://%s/" % ip)
 
@@ -223,30 +286,7 @@ def serve(ip):
             client, _ = server.accept()
         except OSError:
             continue
-
-        # Sin esto, Nagle retiene cada cuadro hasta 200 ms y el video se corta.
         try:
-            client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            _thread.start_new_thread(_handle, (client, ip))
         except OSError:
-            pass
-
-        path = "/"
-        try:
-            path, params = _request(client)
-            camara = cam.camera()
-            if path.startswith("/stream"):
-                _stream(client, camara, params)
-            elif path.startswith("/capture"):
-                _jpeg(client, camara, params)
-            elif path.startswith("/status"):
-                _status(client, camara, ip)
-            else:
-                _page(client, camara, params)
-        except Exception as error:  # noqa: BLE001 - el visor no debe caerse
-            print("error atendiendo %s: %r" % (path, error))
-        finally:
-            try:
-                client.close()
-            except OSError:
-                pass
-            gc.collect()
+            client.close()
