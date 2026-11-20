@@ -50,9 +50,17 @@ def main():
     stream.serve(ip)
 
 
-try:
-    main()
-except KeyboardInterrupt:
-    print("detenido desde el REPL")
-except Exception as error:  # noqa: BLE001 - el REPL debe seguir vivo
-    sys.print_exception(error)
+while True:
+    try:
+        main()
+        break
+    except KeyboardInterrupt:
+        # Ctrl-C desde el REPL: se queda detenido a proposito.
+        print("detenido desde el REPL")
+        break
+    except Exception as error:  # noqa: BLE001 - que se recupere solo
+        # Un fallo no debe dejar el comedero muerto hasta que alguien lo
+        # desenchufe: se reinicia el programa cada 5 segundos.
+        print("Fallo:", error)
+        print("reinicio en 5 s")
+        time.sleep(5)
