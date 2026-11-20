@@ -106,6 +106,11 @@ background:var(--surface-alt);color:var(--muted)}
       <button id="apagar">Apagar</button>
       <span class="tag" id="tag-motor">parado</span>
     </div>
+    <div class="row">
+      <span class="mini" style="margin:0">velocidad</span>
+      <input type="range" id="duty" min="1" max="30" step="1" value="4" style="flex:1">
+      <span class="tag" id="tag-duty">4 %</span>
+    </div>
   </section>
 
   <section class="card">
@@ -178,6 +183,9 @@ function pinta(s) {
   m.textContent = s.motor ? 'girando' : 'parado';
   m.className = 'tag' + (s.motor ? ' ok' : '');
 
+  $('tag-duty').textContent = s.duty + ' %';
+  $('duty').value = s.duty;
+
   $('angulo').innerHTML = s.servo + '&deg;';
   $('servo').value = s.servo;
 
@@ -226,6 +234,9 @@ $('servo').addEventListener('change', function (e) {
   cmd('/api/servo', { angle: parseInt(e.target.value) });
 });
 $('tara').onclick = function () { cmd('/api/tare', {}); };
+$('duty').addEventListener('change', function (e) {
+  cmd('/api/duty', { percent: parseInt(e.target.value) });
+});
 $('calibrar').onclick = function () {
   cmd('/api/calibrate', { grams: parseFloat($('patron').value) });
 };

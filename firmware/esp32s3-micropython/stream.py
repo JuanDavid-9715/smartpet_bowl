@@ -10,6 +10,7 @@ Rutas:
   /api/tare              pone la celda a cero con lo que tenga encima
   /api/calibrate         {"grams": 500} ajusta la escala con un peso conocido
   /api/dose              {"pet": "Jiru", "grams": 65.6} llena hasta el objetivo
+  /api/duty              {"percent": 4} velocidad del motor
   /api/motor             {"on": true|false}
   /api/servo             {"angle": 0..50}
   /api/buzzer            {"pet": "Jiru"} toca el nombre en morse, o {"times": 2}
@@ -206,6 +207,8 @@ def _api(sock, path, body):
         return _json(sock, {"forced": hardware.set_forced(datos.get("on"))})
     if path.startswith("/api/dose"):
         return _json(sock, {"target": hardware.dose(datos.get("pet", ""), datos.get("grams", 0))})
+    if path.startswith("/api/duty"):
+        return _json(sock, {"duty": hardware.set_duty(datos.get("percent", config.MOTOR_DUTY))})
     if path.startswith("/api/motor"):
         return _json(sock, {"motor": hardware.motor(bool(datos.get("on")))})
     if path.startswith("/api/servo"):

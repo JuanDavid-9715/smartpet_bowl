@@ -28,6 +28,7 @@ STATE = {
     "target": 0.0,
     "pet": "",
     "servo": config.TAPA_CERRADA,
+    "duty": config.MOTOR_DUTY,
     "sensor_ok": False,
     "cell_ok": False,
 }
@@ -131,7 +132,7 @@ def _motor(encender):
     # Sin ENA por GPIO, la velocidad se regula troceando IN1.
     _motor_b.value(0)
     if encender:
-        _motor_pwm.duty_u16(int(65535 * config.MOTOR_DUTY / 100))
+        _motor_pwm.duty_u16(int(65535 * STATE["duty"] / 100))
     else:
         _motor_pwm.duty_u16(0)
 
@@ -279,6 +280,18 @@ def dose(pet, gramos):
     finally:
         _lock.release()
     return STATE["target"]
+
+
+def set_duty(porcentaje):
+    """Velocidad del motor en porcentaje. Si esta girando, se aplica ya."""
+    _lock.acquire()
+    try:
+        STATE["duty"] = max(0, min(100, int(porcentaje)))
+        if STATE["motor"] and _motor_pwm is not None:
+            _motor_pwm.duty_u16(int(65535 * STATE["duty"] / 100))
+    finally:
+        _lock.release()
+    return STATE["duty"]
 
 
 def motor(on):
