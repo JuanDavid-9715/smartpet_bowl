@@ -3,6 +3,9 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Sum
+import requests
+from django.conf import settings
+from django.http import Http404, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -419,3 +422,65 @@ def feeder_delete(request, pk):
         messages.success(request, "Plato desvinculado.")
         return redirect("pets:settings")
     return render(request, "pets/feeder_delete.html", {"feeder": feeder})
+
+
+# --- vista en vivo: peso y camara del ESP32 -------------------------------
+
+def _dispositivo():
+    return getattr(settings, "DEVICE_URL", "")
+
+
+@login_required
+def live(request):
+    """Pantalla para ver el peso y la camara del comedero tal como estan ahora."""
+    return render(request, "pets/live.html", {"device": _dispositivo()})
+
+
+@login_required
+def live_state(request):
+    """Reenvia el estado del ESP32 para que el navegador no hable con el plato."""
+    try:
+        respuesta = requests.get(_dispositivo() + "/api/state", timeout=4)
+        respuesta.raise_for_status()
+        return JsonResponse(respuesta.json())
+    except requests.RequestException as exc:
+        return JsonResponse({"online": False, "error": str(exc)}, status=502)
+
+
+@login_required
+def live_video(request):
+    """Proxy del MJPEG. Solo transmite si el sensor ve algo."""
+    try:
+        estado = requests.get(_dispositivo() + "/api/state", timeout=4).json()
+    except (requests.RequestException, ValueError):
+        raise Http404("comedero sin respuesta")
+
+    if not estado.get("presence"):
+        return StreamingHttpResponse(iter(()), status=204)
+
+    try:
+        flujo = requests.get(
+            _dispositivo() + "/stream",
+            stream=True,
+            timeout=(4, 30),
+        )
+    except requests.RequestException:
+        raise Http404("sin video")
+
+    if flujo.status_code != 200:
+        raise Http404("sin video")
+
+    def trozos():
+        try:
+            for trozo in flujo.iter_content(chunk_size=4096):
+                if trozo:
+                    yield trozo
+        finally:
+            flujo.close()
+
+    respuesta = StreamingHttpResponse(
+        trozos(),
+        content_type=flujo.headers.get("Content-Type", "multipart/x-mixed-replace"),
+    )
+    respuesta["Cache-Control"] = "no-store"
+    return respuesta

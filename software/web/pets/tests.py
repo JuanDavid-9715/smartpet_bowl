@@ -340,3 +340,49 @@ def test_eventos_servir_ahora_crea_orden(client):
     orden = FeederCommand.objects.get(feeder=plato, action="feed")
     assert orden.target == "Jiru"
     assert float(orden.grams) == pytest.approx(65.6, abs=0.1)
+
+
+@pytest.mark.django_db
+def test_vivo_muestra_la_pagina(client, monkeypatch):
+    from django.urls import reverse
+
+    from pets import views
+
+    class Falsa:
+        def json(self):
+            return {"cell_ok": True, "grams": 12.3, "raw": -1, "sensor_ok": True,
+                    "distance": 120, "presence": False, "motor": False}
+
+        def raise_for_status(self):
+            return None
+
+    monkeypatch.setattr(views.requests, "get", lambda *a, **k: Falsa())
+    User = get_user_model()
+    user = User.objects.create_user(username="v@v.co", email="v@v.co", password="x")
+    client.force_login(user)
+
+    assert client.get(reverse("pets:live")).status_code == 200
+    estado = client.get(reverse("pets:live_state"))
+    assert estado.status_code == 200
+    assert estado.json()["grams"] == 12.3
+    # sin presencia no hay video
+    assert client.get(reverse("pets:live_video")).status_code == 204
+
+
+@pytest.mark.django_db
+def test_vivo_sin_comedero_avisa(client, monkeypatch):
+    import requests as requests_module
+    from django.urls import reverse
+
+    from pets import views
+
+    def falla(*a, **k):
+        raise requests_module.ConnectionError("sin red")
+
+    monkeypatch.setattr(views.requests, "get", falla)
+    User = get_user_model()
+    user = User.objects.create_user(username="w@w.co", email="w@w.co", password="x")
+    client.force_login(user)
+    respuesta = client.get(reverse("pets:live_state"))
+    assert respuesta.status_code == 502
+    assert respuesta.json()["online"] is False

@@ -122,6 +122,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Token que autoriza a la Raspberry para publicar lecturas.
 INGEST_TOKEN = os.getenv("INGEST_TOKEN", "dev-token")
+
+# Direccion del ESP32 en la red local. La web lee de aqui el peso y el video.
+DEVICE_URL = os.getenv("DEVICE_URL", "http://10.204.126.11").rstrip("/")
 DEMO_EMAIL = os.getenv("DEMO_EMAIL", "juanda.medellinca@ecci.edu.co")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https") if not DEBUG else None
