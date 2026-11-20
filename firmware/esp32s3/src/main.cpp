@@ -43,7 +43,6 @@ static PubSubClient mqtt(net);
 static httpd_handle_t cameraServer = nullptr;
 
 static float pesoBase = 0;
-static float pesoObjetivo = 0;
 static float pesoServido = 0;
 static unsigned long llamadaHasta = 0;
 static unsigned long presenciaDesde = 0;
@@ -113,7 +112,11 @@ static float dosificar(float gramos) {
   float actual = referencia;
   while (millis() - inicio < DOSIS_TIMEOUT_MS) {
     actual = leerPeso(4);
-    if (actual < 0) continue;
+    if (actual < 0) {
+      // La celda no responde: esperar sin girar a maxima velocidad en vacio.
+      delay(60);
+      continue;
+    }
     float falta = objetivo - actual;
     if (falta <= PESO_TOLERANCIA_G) break;
     delay(60);
@@ -278,7 +281,7 @@ void setup() {
   Wire.begin(PIN_TOF_SDA, PIN_TOF_SCL);
   Wire.setClock(100000);
   if (!tof.begin()) {
-    Serial.println("VL53L0X no responde en SDA=1 SCL=2");
+    Serial.printf("VL53L0X no responde (SDA=%d SCL=%d)\n", PIN_TOF_SDA, PIN_TOF_SCL);
   }
 
   if (!iniciarCamara()) {

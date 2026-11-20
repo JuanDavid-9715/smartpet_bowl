@@ -52,6 +52,9 @@ software/web/staticfiles/
 software/web/.env
 software/web/media/
 
+# PlatformIO
+.pio/
+
 # Herramientas
 .playwright-mcp/
 

@@ -90,10 +90,23 @@ Edita `include/config.h`:
 
 ## Compilar y subir
 
+Ya compila sin errores con PlatformIO 6.2.0 y `platform-espressif32` 3.3.12
+(Arduino core 3.x). Las dependencias que faltaban en `platformio.ini` eran
+`espressif/esp32-camera` (la camara no viene en el core) y los nombres reales de
+las librerias de Adafruit. Ese olvido habria hecho fallar el primer build.
+
 ```bash
 pio run
 pio run -t upload
 pio device monitor
+```
+
+Tamaño medido del binario: **31.0% de flash** (1.036 KB de 3.263 KB) y **18.6%
+de RAM** estatica. Sobra espacio para crecer.
+
+```bash
+pip install platformio
+pio run
 ```
 
 ## Lo que falta verificar en el montaje
