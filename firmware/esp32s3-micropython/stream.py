@@ -117,10 +117,17 @@ def _apply(camara, params):
         size = config.DEFAULT_SIZE
     destino = SIZES[size]
     if camara.get_frame_size() != destino:
-        try:
-            camara.set_frame_size(destino)
-        except OSError:
-            size = config.DEFAULT_SIZE
+        # Cambiar de tamano falla a veces con OSError y el ajuste no queda.
+        # Sin reintento la foto de registro salia en QVGA aunque se pidiera
+        # VGA, que es justo lo que paso con las referencias de Armi.
+        for _ in range(3):
+            try:
+                camara.set_frame_size(destino)
+            except OSError:
+                pass
+            if camara.get_frame_size() == destino:
+                break
+            time.sleep_ms(30)
 
     quality = params.get("q", config.STREAM_QUALITY)
     if quality:
@@ -138,9 +145,23 @@ def _jpeg(sock, camara, params):
     # calidad, capturar y copiar. El envio va fuera, sobre la copia.
     # El candado de MicroPython no es reentrante: si el llamador ya lo tomo,
     # este acquire se queda esperando para siempre.
+    global _ultimo_size
+
     _cam_lock.acquire()
     try:
-        _apply(camara, params)
+        size = _apply(camara, params)
+        if size != _ultimo_size:
+            # Tras cambiar de tamano el primer cuadro todavia sale con el
+            # anterior. Se descarta para que la foto tenga el tamano pedido.
+            try:
+                cam.frame(camara)
+            except OSError:
+                pass
+            try:
+                camara.free_buffer()
+            except OSError:
+                pass
+            _ultimo_size = size
         try:
             buf = bytes(cam.frame(camara))
         finally:
@@ -265,6 +286,7 @@ def _api(sock, path, body):
 
 _cam_lock = _thread.allocate_lock()
 _current_stream = None
+_ultimo_size = None
 
 
 def _handle(client, ip):
