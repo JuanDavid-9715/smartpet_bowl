@@ -134,24 +134,40 @@ def _apply(camara, params):
 
 
 def _jpeg(sock, camara, params):
-    _apply(camara, params)
-    buf = cam.frame(camara)
+    # Todo el acceso a la camara va bajo UN SOLO candado: ajustar tamano o
+    # calidad, capturar y copiar. El envio va fuera, sobre la copia.
+    # El candado de MicroPython no es reentrante: si el llamador ya lo tomo,
+    # este acquire se queda esperando para siempre.
+    _cam_lock.acquire()
     try:
-        head = (
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: image/jpeg\r\n"
-            "Content-Length: %d\r\n"
-            "Cache-Control: no-store\r\n"
-            "Connection: close\r\n\r\n"
-        ) % len(buf)
-        _send_all(sock, head.encode())
-        _send_all(sock, buf)
+        _apply(camara, params)
+        try:
+            buf = bytes(cam.frame(camara))
+        finally:
+            try:
+                camara.free_buffer()
+            except OSError:
+                pass
     finally:
-        camara.free_buffer()
+        _cam_lock.release()
+
+    head = (
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: image/jpeg\r\n"
+        "Content-Length: %d\r\n"
+        "Cache-Control: no-store\r\n"
+        "Connection: close\r\n\r\n"
+    ) % len(buf)
+    _send_all(sock, head.encode())
+    _send_all(sock, buf)
 
 
 def _stream(sock, camara, params):
-    _apply(camara, params)
+    _cam_lock.acquire()
+    try:
+        _apply(camara, params)
+    finally:
+        _cam_lock.release()
     head = (
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: multipart/x-mixed-replace; boundary=%s\r\n"
@@ -166,18 +182,19 @@ def _stream(sock, camara, params):
         inicio = time.ticks_ms()
         _cam_lock.acquire()
         try:
-            buf = cam.frame(camara)
+            buf = bytes(cam.frame(camara))
         finally:
+            try:
+                camara.free_buffer()
+            except OSError:
+                pass
             _cam_lock.release()
-        try:
-            part = "--%s\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n" % (
-                BOUNDARY,
-                len(buf),
-            )
-            _send_all(sock, part.encode())
-            _send_all(sock, buf)
-        finally:
-            camara.free_buffer()
+        part = "--%s\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n" % (
+            BOUNDARY,
+            len(buf),
+        )
+        _send_all(sock, part.encode())
+        _send_all(sock, buf)
         frames += 1
         if frames % 100 == 0:
             gc.collect()
@@ -286,15 +303,16 @@ def _handle(client, ip):
                 if _current_stream is client:
                     _current_stream = None
         elif path.startswith("/capture"):
-            _cam_lock.acquire()
-            try:
-                _jpeg(client, camara, params)
-            finally:
-                _cam_lock.release()
+            # _jpeg toma el candado por dentro: no se toma aqui o se bloquea.
+            _jpeg(client, camara, params)
         elif path.startswith("/status"):
             _status(client, camara, ip)
         else:
-            _apply(camara, params)
+            _cam_lock.acquire()
+            try:
+                _apply(camara, params)
+            finally:
+                _cam_lock.release()
             _send_text(client, panel.PAGE, "text/html; charset=utf-8")
 
     except Exception as error:  # noqa: BLE001 - el panel no debe caerse

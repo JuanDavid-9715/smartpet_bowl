@@ -20,10 +20,22 @@ def _setup(camara):
         camara.set_gainceiling(getattr(GainCeiling, config.CAMERA_GAIN))
     except (OSError, AttributeError, TypeError):
         pass
-    try:
-        camara.set_brightness(config.CAMERA_BRIGHTNESS)
-    except (OSError, AttributeError, TypeError):
-        pass
+    for ajuste, valor in (
+        ("set_brightness", config.CAMERA_BRIGHTNESS),
+        ("set_saturation", config.CAMERA_SATURATION),
+        ("set_contrast", config.CAMERA_CONTRAST),
+    ):
+        try:
+            getattr(camara, ajuste)(valor)
+        except (OSError, AttributeError, TypeError):
+            pass
+
+    # Color y balance de blancos automaticos: sin esto el sensor entrega gris.
+    for ajuste in ("set_whitebal", "set_awb_gain", "set_exposure_ctrl", "set_gain_ctrl"):
+        try:
+            getattr(camara, ajuste)(1)
+        except (OSError, AttributeError, TypeError):
+            pass
 
 
 def camera():

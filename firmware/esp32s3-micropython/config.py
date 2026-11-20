@@ -28,8 +28,10 @@ CAMERA = {
 
 # Techo de ganancia para poca luz y brillo extra (-2..2). Medido: sin esto la
 # imagen nocturna queda en luminancia 16/255; con 16X sube a 85.
-CAMERA_GAIN = "16X"
-CAMERA_BRIGHTNESS = 1
+CAMERA_GAIN = "8X"
+CAMERA_BRIGHTNESS = 0    # +1 lavaba la imagen en luz normal
+CAMERA_SATURATION = 2    # el sensor salia casi en blanco y negro
+CAMERA_CONTRAST = 1
 
 # --- Servidor de video ----------------------------------------------------
 HTTP_PORT = 80
