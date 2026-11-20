@@ -75,11 +75,28 @@ hace falta un GPIO. La dosificacion la controla la celda de carga, no la
 velocidad. Si mas adelante quieres regular velocidad, cambia `PIN_MOTOR_ENA`
 de `-1` a un GPIO libre y quita el jumper.
 
+## Credenciales (no van al repositorio)
+
+El WiFi y la dirección del broker viven en `include/secrets.h`, que está en
+`.gitignore`. En el repositorio solo está la plantilla:
+
+```bash
+cp include/secrets.example.h include/secrets.h
+# y completa WIFI_SSID, WIFI_PASS, MQTT_HOST_NAME y MQTT_HOST_FALLBACK
+```
+
+Si falta `secrets.h`, la compilación se detiene con un mensaje claro en vez de
+arrancar con valores de ejemplo.
+
+**El broker se busca por nombre, no por IP.** El firmware resuelve
+`MQTT_HOST_NAME` (`raspberrypi.local`) por mDNS en cada arranque, porque con el
+punto de acceso del celular la IP de la Raspberry cambia. Si el punto de acceso
+bloquea el multicast, cae en `MQTT_HOST_FALLBACK`, que es una IP fija. El log
+del puerto serie dice cuál de las dos usó.
+
 ## Antes de compilar
 
-Edita `include/config.h`:
-
-- `WIFI_SSID`, `WIFI_PASS`, `MQTT_HOST`, `FEEDER_CODE`.
+- `FEEDER_CODE` en `include/config.h`.
 - `scale.set_scale(-430.0)` en `main.cpp` es un valor inicial. **Se calibra en el montaje** con un peso conocido.
 - `PRESENCIA_MM` (700) y `PRESENCIA_MS` (1500) se ajustan segun donde quede el sensor.
 - El servo es un **SG90**, no el MG996R del diseno. Si no levanta la tapa, hay que volver al MG996R.

@@ -7,10 +7,13 @@
 // No se pueden usar: si se manejan, se corrompe la memoria.
 
 // --- Red -----------------------------------------------------------------
-#define WIFI_SSID "CAMBIAR"
-#define WIFI_PASS "CAMBIAR"
+// Las credenciales viven en secrets.h, que no se versiona.
+// Copia include/secrets.example.h a include/secrets.h y completalo.
+#if !__has_include("secrets.h")
+#error "Falta include/secrets.h: copia secrets.example.h y pon tus datos."
+#endif
+#include "secrets.h"
 
-#define MQTT_HOST "192.168.1.10"
 #define MQTT_PORT 1883
 #define FEEDER_CODE "SPB-42"
 

@@ -20,6 +20,7 @@
 #include <HX711.h>
 #include <Wire.h>
 #include <Adafruit_VL53L0X.h>
+#include <ESPmDNS.h>
 #include "esp_camera.h"
 #include "esp_http_server.h"
 #include "config.h"
@@ -237,7 +238,44 @@ static void manejarComando(char *tema, byte *carga, unsigned int largo) {
   }
 }
 
+// La IP de la Raspberry cambia con el punto de acceso del celular, asi que se
+// busca por nombre mDNS. La IP fija solo se usa si el nombre no responde.
+static void iniciarMdns() {
+  static bool listo = false;
+  if (listo) return;
+  if (MDNS.begin("smartpet-bowl")) {
+    listo = true;
+    Serial.println("mDNS activo: smartpet-bowl.local");
+  }
+}
+
+static IPAddress direccionBroker() {
+  static IPAddress cache;
+  if ((uint32_t)cache != 0) return cache;
+
+  IPAddress porNombre = MDNS.queryHost(MQTT_HOST_NAME, 3000);
+  if ((uint32_t)porNombre != 0) {
+    cache = porNombre;
+    Serial.printf("Broker por mDNS: %s = %s\n", MQTT_HOST_NAME, cache.toString().c_str());
+    return cache;
+  }
+
+  IPAddress fija;
+  if (fija.fromString(MQTT_HOST_FALLBACK)) {
+    Serial.printf("mDNS sin respuesta, uso la IP de respaldo %s\n", MQTT_HOST_FALLBACK);
+    return fija;
+  }
+  return IPAddress(0, 0, 0, 0);
+}
+
 static void conectarMqtt() {
+  iniciarMdns();
+  IPAddress broker = direccionBroker();
+  if ((uint32_t)broker == 0) {
+    Serial.println("Sin direccion para el broker MQTT");
+    return;
+  }
+  mqtt.setServer(broker, MQTT_PORT);
   String clientId = String("comedero-") + FEEDER_CODE;
   String willTopic = String("comedero/") + FEEDER_CODE + "/estado";
 
@@ -294,7 +332,6 @@ void setup() {
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   state = ST_CONNECTING;
 
-  mqtt.setServer(MQTT_HOST, MQTT_PORT);
   mqtt.setCallback(manejarComando);
   mqtt.setBufferSize(512);
 }
