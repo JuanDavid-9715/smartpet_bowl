@@ -235,3 +235,90 @@ def test_vision_compara():
     b = rng.integers(0, 255, (40, 32), dtype=np.uint8)
     assert vision.match_score(a, a) > vision.match_score(a, b)
     assert vision.combine([vision.encode(a), vision.encode(a)]) != ""
+
+
+@pytest.mark.django_db
+def test_eventos_agrega_comida(client):
+    from django.urls import reverse
+
+    User = get_user_model()
+    user = User.objects.create_user(username="e@e.co", email="e@e.co", password="x")
+    pet = Pet.objects.create(owner=user, name="Jiru", species="cat", weight_kg=10,
+                             meals_per_day=2, target_grams=131.2)
+    client.force_login(user)
+    response = client.post(reverse("pets:events"), {
+        "accion": "agregar", "pet": pet.pk, "time": "06:45", "grams": "60",
+    })
+    assert response.status_code == 302
+    comida = MealTime.objects.get(pet=pet, time="06:45")
+    assert float(comida.grams) == 60.0
+
+
+@pytest.mark.django_db
+def test_eventos_gramos_automaticos(client):
+    """Sin gramos usa la porcion sugerida de la racion diaria."""
+    from django.urls import reverse
+
+    User = get_user_model()
+    user = User.objects.create_user(username="a@a.co", email="a@a.co", password="x")
+    pet = Pet.objects.create(owner=user, name="Armi", species="dog", weight_kg=31,
+                             meals_per_day=2, target_grams=204.3)
+    client.force_login(user)
+    client.post(reverse("pets:events"), {"accion": "agregar", "pet": pet.pk, "time": "19:30"})
+    comida = MealTime.objects.get(pet=pet, time="19:30")
+    assert float(comida.grams) == pytest.approx(102.2, abs=0.2)
+
+
+@pytest.mark.django_db
+def test_eventos_borra_comida(client):
+    from django.urls import reverse
+
+    User = get_user_model()
+    user = User.objects.create_user(username="b@b.co", email="b@b.co", password="x")
+    pet = Pet.objects.create(owner=user, name="Jiru", species="cat", weight_kg=10)
+    comida = MealTime.objects.create(pet=pet, time="08:00", grams=50)
+    client.force_login(user)
+    client.post(reverse("pets:events"), {"accion": "borrar", "meal": comida.pk})
+    assert not MealTime.objects.filter(pk=comida.pk).exists()
+
+
+@pytest.mark.django_db
+def test_eventos_no_toca_mascotas_ajenas(client):
+    from django.urls import reverse
+
+    User = get_user_model()
+    dueno = User.objects.create_user(username="d@d.co", email="d@d.co", password="x")
+    otro = User.objects.create_user(username="o@o.co", email="o@o.co", password="x")
+    ajeno = Pet.objects.create(owner=otro, name="Ajena", species="cat", weight_kg=4)
+    client.force_login(dueno)
+    client.post(reverse("pets:events"), {"accion": "agregar", "pet": ajeno.pk, "time": "09:00"})
+    assert MealTime.objects.filter(pet=ajeno).count() == 0
+
+
+@pytest.mark.django_db
+def test_eventos_envia_orden_al_comedero(client):
+    from django.urls import reverse
+
+    from pets.models import Feeder, FeederCommand
+
+    User = get_user_model()
+    user = User.objects.create_user(username="f@f.co", email="f@f.co", password="x")
+    plato = Feeder.objects.create(owner=user, code="SPB-42")
+    client.force_login(user)
+    client.post(reverse("pets:events"), {
+        "accion": "orden", "feeder": plato.pk, "action": "restart",
+    })
+    assert FeederCommand.objects.filter(feeder=plato, action="restart").exists()
+
+
+@pytest.mark.django_db
+def test_eventos_muestra_la_pagina(client):
+    from django.urls import reverse
+
+    User = get_user_model()
+    user = User.objects.create_user(username="g@g.co", email="g@g.co", password="x")
+    Pet.objects.create(owner=user, name="Jiru", species="cat", weight_kg=10)
+    client.force_login(user)
+    response = client.get(reverse("pets:events"))
+    assert response.status_code == 200
+    assert b"Agregar una comida" in response.content

@@ -18,6 +18,7 @@ urlpatterns = [
     path("mascotas/<int:pk>/archivar/", views.pet_archive, name="archive"),
     path("mascotas/<int:pk>/restaurar/", views.pet_restore, name="restore"),
     path("mascotas/<int:pk>/plato/quitar/", views.pet_unassign_feeder, name="unassign_feeder"),
+    path("eventos/", views.events, name="events"),
     path("historial/", views.history, name="history"),
     path("alertas/", views.alerts, name="alerts"),
     path("ajustes/", views.settings_view, name="settings"),

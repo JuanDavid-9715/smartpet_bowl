@@ -5,6 +5,7 @@
   <nav class="app-nav" aria-label="Aplicacion">
     <a href="{% url 'pets:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>Panel</a>
     <a href="{% url 'pets:list' %}" {% if request.resolver_match.url_name == 'list' or request.resolver_match.url_name == 'detail' %}aria-current="page"{% endif %}>Mascotas</a>
+    <a href="{% url 'pets:events' %}" {% if request.resolver_match.url_name == 'events' %}aria-current="page"{% endif %}>Eventos</a>
     <a href="{% url 'pets:history' %}" {% if request.resolver_match.url_name == 'history' %}aria-current="page"{% endif %}>Historial</a>
     <a href="{% url 'pets:alerts' %}" {% if request.resolver_match.url_name == 'alerts' %}aria-current="page"{% endif %}>Alertas</a>
     <a href="{% url 'pets:settings' %}" {% if request.resolver_match.url_name == 'settings' %}aria-current="page"{% endif %}>Ajustes y plan</a>

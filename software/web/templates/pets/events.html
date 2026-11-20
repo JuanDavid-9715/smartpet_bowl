@@ -1,0 +1,111 @@
+{% extends "pets/base_app.html" %}
+{% block title %}Eventos — SmartPet Bowl{% endblock %}
+{% block app %}
+<div class="app-head">
+  <h1>Eventos.</h1>
+  <p class="muted">Las horas a las que el comedero llama a cada mascota y las órdenes al equipo.</p>
+</div>
+
+<div class="grid grid--2" style="margin-top:24px;align-items:start">
+
+  <section class="card">
+    <h3>Agregar una comida</h3>
+    <p class="muted" style="font-size:13px;margin-top:4px">
+      Si dejas los gramos vacíos se usa la porción sugerida de la ración diaria.
+    </p>
+    <form method="post" style="margin-top:16px;display:grid;gap:12px">
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="agregar">
+      <label>
+        <span class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.1em">Mascota</span>
+        <select name="pet" required style="width:100%;margin-top:6px">
+          {% for pet in pets %}
+            <option value="{{ pet.pk }}">{{ pet.name }} · {{ pet.target_grams }} g/día</option>
+          {% empty %}
+            <option value="">No hay mascotas activas</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <label style="flex:1;min-width:130px">
+          <span class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.1em">Hora</span>
+          <input type="time" name="time" required value="07:30" style="width:100%;margin-top:6px">
+        </label>
+        <label style="flex:1;min-width:110px">
+          <span class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.1em">Gramos</span>
+          <input type="number" name="grams" min="1" step="0.1" placeholder="auto" style="width:100%;margin-top:6px">
+        </label>
+      </div>
+      <button class="btn btn--primary" type="submit" {% if not pets %}disabled{% endif %}>
+        Agregar al calendario
+      </button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h3>Comederos</h3>
+    {% if comederos %}
+      {% for feeder in comederos %}
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--hairline)">
+          <div>
+            <p style="font-weight:600">{{ feeder.code }}</p>
+            <p class="muted" style="font-size:12px">
+              {% for pet in feeder.pets.all %}{{ pet.name }}{% if not forloop.last %}, {% endif %}{% empty %}sin mascota{% endfor %}
+            </p>
+          </div>
+          <form method="post" style="margin:0">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="orden">
+            <input type="hidden" name="feeder" value="{{ feeder.pk }}">
+            <input type="hidden" name="action" value="restart">
+            <button class="btn btn--ghost btn--sm" type="submit">Reiniciar</button>
+          </form>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">Todavía no hay comederos registrados.</p>
+    {% endif %}
+    <p class="muted" style="font-size:12px;margin-top:14px">
+      La Raspberry recoge estas órdenes cada 20 segundos y las publica por MQTT.
+    </p>
+  </section>
+</div>
+
+<h3 style="margin-top:36px">Calendario</h3>
+{% if pets %}
+  <div class="grid grid--2" style="margin-top:14px;align-items:start">
+    {% for pet in pets %}
+      <section class="card">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+          <h3 style="font-size:20px">{{ pet.name }}</h3>
+          <span class="muted" style="font-size:12px">{{ pet.target_grams }} g al día · {{ pet.meals_per_day }} comidas</span>
+        </div>
+        {% if pet.meal_times.all %}
+          <div style="margin-top:14px;display:grid;gap:8px">
+            {% for meal in pet.meal_times.all %}
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+                <span class="mono" style="font-size:15px">{{ meal.time|time:"H:i" }}</span>
+                <span class="muted" style="font-size:13px;flex:1">{{ meal.grams }} g</span>
+                <form method="post" style="margin:0">
+                  {% csrf_token %}
+                  <input type="hidden" name="accion" value="borrar">
+                  <input type="hidden" name="meal" value="{{ meal.pk }}">
+                  <button class="btn btn--ghost btn--sm" type="submit">Quitar</button>
+                </form>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted" style="margin-top:12px;font-size:13px">
+            Sin horarios. El comedero no llamará a {{ pet.name }} hasta que agregues uno.
+          </p>
+        {% endif %}
+      </section>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card" style="margin-top:14px">
+    <p class="muted">Agrega una mascota para poder programar sus comidas.</p>
+  </div>
+{% endif %}
+{% endblock %}

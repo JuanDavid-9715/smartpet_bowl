@@ -11,7 +11,7 @@ from telemetry.models import Alert, MealEvent
 from . import nutrition
 from .forms import PetForm, PetPhotoForm
 from . import embedding, features
-from .models import Feeder, FeederCommand, Pet, PetPhoto
+from .models import Feeder, FeederCommand, MealTime, Pet, PetPhoto
 
 
 def _pets(request):
@@ -318,6 +318,61 @@ def feeder_add(request):
         Feeder.objects.create(owner=request.user, code=code, is_online=False)
         messages.success(request, f"Plato {code} vinculado. Asignalo a una mascota para que funcione.")
     return redirect("pets:settings")
+
+
+@login_required
+def events(request):
+    """Horarios de comida y ordenes al comedero: el calendario del sistema."""
+    pets = _pets(request).filter(archived=False)
+
+    if request.method == "POST":
+        accion = request.POST.get("accion", "agregar")
+
+        if accion == "agregar":
+            pet = pets.filter(pk=request.POST.get("pet")).first()
+            hora = (request.POST.get("time") or "").strip()
+            gramos = (request.POST.get("grams") or "").strip()
+
+            if pet is None or not hora:
+                messages.error(request, "Elige la mascota y la hora.")
+            else:
+                if not gramos:
+                    comidas = pet.meals_per_day or 2
+                    gramos = round(float(pet.target_grams or 0) / comidas, 1)
+                try:
+                    MealTime.objects.create(pet=pet, time=hora, grams=gramos)
+                    messages.success(
+                        request, "%s: comida a las %s con %s g." % (pet.name, hora[:5], gramos)
+                    )
+                except (ValueError, TypeError):
+                    messages.error(request, "Esa hora o ese peso no son validos.")
+
+        elif accion == "borrar":
+            comida = MealTime.objects.filter(
+                pk=request.POST.get("meal"), pet__owner=request.user
+            ).first()
+            if comida is not None:
+                comida.delete()
+                messages.success(request, "Horario eliminado.")
+
+        elif accion == "orden":
+            comedero = Feeder.objects.filter(
+                owner=request.user, pk=request.POST.get("feeder")
+            ).first()
+            if comedero is not None:
+                FeederCommand.objects.create(
+                    feeder=comedero, action=request.POST.get("action", "reconnect")
+                )
+                messages.success(request, "Orden enviada a %s." % comedero.code)
+
+        return redirect("pets:events")
+
+    comederos = Feeder.objects.filter(owner=request.user).order_by("code")
+    return render(
+        request,
+        "pets/events.html",
+        {"pets": pets, "comederos": comederos},
+    )
 
 
 @login_required
