@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 
 from pets import nutrition
 from pets.models import MealTime, Pet
@@ -238,6 +239,7 @@ def test_vision_compara():
 
 
 @pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
 def test_eventos_agrega_comida(client):
     from django.urls import reverse
 
@@ -255,6 +257,7 @@ def test_eventos_agrega_comida(client):
 
 
 @pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
 def test_eventos_gramos_automaticos(client):
     """Sin gramos usa la porcion sugerida de la racion diaria."""
     from django.urls import reverse
@@ -270,6 +273,7 @@ def test_eventos_gramos_automaticos(client):
 
 
 @pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
 def test_eventos_borra_comida(client):
     from django.urls import reverse
 
@@ -283,6 +287,7 @@ def test_eventos_borra_comida(client):
 
 
 @pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
 def test_eventos_no_toca_mascotas_ajenas(client):
     from django.urls import reverse
 
@@ -296,6 +301,7 @@ def test_eventos_no_toca_mascotas_ajenas(client):
 
 
 @pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
 def test_eventos_envia_orden_al_comedero(client):
     from django.urls import reverse
 
@@ -312,6 +318,7 @@ def test_eventos_envia_orden_al_comedero(client):
 
 
 @pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
 def test_eventos_muestra_la_pagina(client):
     from django.urls import reverse
 
@@ -325,6 +332,7 @@ def test_eventos_muestra_la_pagina(client):
 
 
 @pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
 def test_eventos_servir_ahora_va_al_equipo(client, monkeypatch):
     """Servir ahora habla directo con el ESP32, sin platos ni MQTT."""
     from django.urls import reverse
@@ -359,6 +367,7 @@ def test_eventos_servir_ahora_va_al_equipo(client, monkeypatch):
 
 
 @pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
 def test_eventos_reinicia_el_equipo(client, monkeypatch):
     from django.urls import reverse
 
@@ -385,6 +394,7 @@ def test_eventos_reinicia_el_equipo(client, monkeypatch):
 
 
 @pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
 def test_vivo_muestra_la_pagina(client, monkeypatch):
     from django.urls import reverse
 
@@ -415,6 +425,7 @@ def test_vivo_muestra_la_pagina(client, monkeypatch):
 
 
 @pytest.mark.django_db
+@override_settings(IS_LOCAL=True)
 def test_vivo_sin_comedero_avisa(client, monkeypatch):
     import requests as requests_module
     from django.urls import reverse
@@ -433,3 +444,22 @@ def test_vivo_sin_comedero_avisa(client, monkeypatch):
     assert respuesta.json()["online"] is False
 
 
+
+
+@pytest.mark.django_db
+@override_settings(IS_LOCAL=False)
+def test_el_panel_tecnico_no_existe_en_la_nube(client):
+    """En Render no hay ESP32: la pagina y su enlace no se publican."""
+    from django.urls import reverse
+
+    User = get_user_model()
+    user = User.objects.create_user(username="n@n.co", email="n@n.co", password="x")
+    client.force_login(user)
+
+    assert client.get(reverse("pets:events")).status_code == 404
+    assert client.get(reverse("pets:live_state")).status_code == 404
+    assert client.get(reverse("pets:live_video")).status_code == 404
+
+    ajustes = client.get(reverse("pets:settings"))
+    assert ajustes.status_code == 200
+    assert b"Panel tecnico" not in ajustes.content

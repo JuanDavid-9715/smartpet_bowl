@@ -325,7 +325,14 @@ def feeder_add(request):
 
 @login_required
 def events(request):
-    """Horarios de comida y ordenes al comedero: el calendario del sistema."""
+    """Horarios de comida y ordenes al comedero.
+
+    Solo existe en la instalacion local: en la nube no hay ESP32 que controlar,
+    asi que la pagina no se publica.
+    """
+    if not settings.IS_LOCAL:
+        raise Http404("Este panel solo existe en la instalacion local.")
+
     pets = _pets(request).filter(archived=False)
 
     if request.method == "POST":
@@ -468,6 +475,8 @@ def _device_post(ruta, datos=None):
 @login_required
 def live_state(request):
     """Reenvia el estado del ESP32 para que el navegador no hable con el plato."""
+    if not settings.IS_LOCAL:
+        raise Http404("Sin equipo local.")
     try:
         respuesta = requests.get(_dispositivo() + "/api/state", timeout=4)
         respuesta.raise_for_status()
@@ -479,6 +488,8 @@ def live_state(request):
 @login_required
 def live_video(request):
     """Proxy del MJPEG. Solo transmite si el sensor ve algo."""
+    if not settings.IS_LOCAL:
+        raise Http404("Sin equipo local.")
     try:
         estado = requests.get(_dispositivo() + "/api/state", timeout=4).json()
     except (requests.RequestException, ValueError):
