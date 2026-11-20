@@ -34,7 +34,7 @@ CAMERA_BRIGHTNESS = 1
 # --- Servidor de video ----------------------------------------------------
 HTTP_PORT = 80
 # vga (fluido), svga (equilibrado) o hd (nitido). Se puede cambiar desde la web.
-DEFAULT_SIZE = "vga"
+DEFAULT_SIZE = "qvga"   # 320x240: el enlace manda; las fotos se toman en VGA
 
 # --- Actuadores y sensores (etapas siguientes) ----------------------------
 PIN_SERVO = 14

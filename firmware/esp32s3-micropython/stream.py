@@ -34,6 +34,7 @@ import panel
 BOUNDARY = "spbframe"
 
 SIZES = {
+    "qvga": FrameSize.QVGA,
     "vga": FrameSize.VGA,
     "svga": FrameSize.SVGA,
     "hd": FrameSize.HD,

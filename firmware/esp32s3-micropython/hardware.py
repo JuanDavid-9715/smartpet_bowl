@@ -71,6 +71,9 @@ def _celda_cruda():
     while _dout.value():
         if time.ticks_diff(time.ticks_ms(), inicio) > 200:
             return None
+        # Ceder el procesador: sin esto el bucle gira en vacio y deja sin CPU
+        # al servidor y a la camara (una captura tardaba 10 s).
+        time.sleep_ms(2)
     valor = 0
     for _ in range(24):
         _sck.value(1)
@@ -258,7 +261,7 @@ def _bucle():
                     _cerrar_comida("tiempo agotado")
         finally:
             _lock.release()
-        time.sleep_ms(200)
+        time.sleep_ms(250)
 
 
 # ------------------------------------------------------------------ arranque
