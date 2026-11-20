@@ -1,0 +1,329 @@
+[
+  {
+    "id": "tab_comedero",
+    "type": "tab",
+    "label": "Comedero",
+    "disabled": false,
+    "info": "Orquestador MQTT del comedero SPB-42: escucha los eventos de la placa, el estado del servicio de la Pi y permite mandar ordenes."
+  },
+  {
+    "id": "broker_local",
+    "type": "mqtt-broker",
+    "name": "mosquitto local",
+    "broker": "127.0.0.1",
+    "port": "1883",
+    "clientid": "node-red-comedero",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthRetain": "false",
+    "birthPayload": "",
+    "closeTopic": "",
+    "closeQos": "0",
+    "closeRetain": "false",
+    "closePayload": "",
+    "willTopic": "",
+    "willQos": "0",
+    "willRetain": "false",
+    "willPayload": ""
+  },
+  {
+    "id": "in_evento",
+    "type": "mqtt in",
+    "z": "tab_comedero",
+    "name": "evento/#",
+    "topic": "comedero/SPB-42/evento/#",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "broker_local",
+    "nl": false,
+    "rap": false,
+    "rh": 0,
+    "inputs": 0,
+    "x": 160,
+    "y": 80,
+    "wires": [
+      [
+        "fn_evento"
+      ]
+    ]
+  },
+  {
+    "id": "in_ip",
+    "type": "mqtt in",
+    "z": "tab_comedero",
+    "name": "ip de la placa",
+    "topic": "comedero/SPB-42/ip",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "broker_local",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 170,
+    "y": 150,
+    "wires": [
+      [
+        "fn_ip"
+      ]
+    ]
+  },
+  {
+    "id": "in_estado",
+    "type": "mqtt in",
+    "z": "tab_comedero",
+    "name": "estado de la Pi",
+    "topic": "comedero/SPB-42/estado",
+    "qos": "1",
+    "datatype": "json",
+    "broker": "broker_local",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 180,
+    "y": 220,
+    "wires": [
+      [
+        "fn_estado_pi"
+      ]
+    ]
+  },
+  {
+    "id": "fn_evento",
+    "type": "function",
+    "z": "tab_comedero",
+    "name": "guardar evento",
+    "func": "\n// Guarda el ultimo evento y lleva un registro corto para el tablero.\nvar registro = flow.get(\"registro\") || [];\nvar tipo = (msg.topic || \"\").split(\"/\").pop();\n\nregistro.unshift({ tipo: tipo, datos: msg.payload, cuando: Date.now() });\nflow.set(\"registro\", registro.slice(0, 12));\nflow.set(\"ultimo\", { tipo: tipo, datos: msg.payload, cuando: Date.now() });\n\nreturn null;\n",
+    "outputs": 0,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 400,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "fn_ip",
+    "type": "function",
+    "z": "tab_comedero",
+    "name": "guardar IP",
+    "func": "\nflow.set(\"placa_ip\", (msg.payload && msg.payload.ip) || \"\");\nflow.set(\"placa_visto\", Date.now());\nreturn null;\n",
+    "outputs": 0,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 390,
+    "y": 150,
+    "wires": []
+  },
+  {
+    "id": "fn_estado_pi",
+    "type": "function",
+    "z": "tab_comedero",
+    "name": "guardar estado de la Pi",
+    "func": "\nflow.set(\"pi_en_linea\", !!(msg.payload && msg.payload.en_linea));\nflow.set(\"pi_visto\", Date.now());\nreturn null;\n",
+    "outputs": 0,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 220,
+    "wires": []
+  },
+  {
+    "id": "http_estado",
+    "type": "http in",
+    "z": "tab_comedero",
+    "name": "GET /comedero/estado",
+    "url": "/comedero/estado",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 200,
+    "y": 320,
+    "wires": [
+      [
+        "fn_estado_json"
+      ]
+    ]
+  },
+  {
+    "id": "fn_estado_json",
+    "type": "function",
+    "z": "tab_comedero",
+    "name": "armar estado",
+    "func": "\nvar ahora = Date.now();\n\nfunction hace(cuando) {\n    if (!cuando) { return null; }\n    return Math.round((ahora - cuando) / 1000);\n}\n\nvar ultimo = flow.get(\"ultimo\") || null;\nvar registro = (flow.get(\"registro\") || []).map(function (e) {\n    return { tipo: e.tipo, datos: e.datos, hace_s: hace(e.cuando) };\n});\n\nmsg.headers = { \"content-type\": \"application/json; charset=utf-8\" };\nmsg.payload = {\n    placa: {\n        ip: flow.get(\"placa_ip\") || \"\",\n        hace_s: hace(flow.get(\"placa_visto\"))\n    },\n    servicio: {\n        en_linea: !!flow.get(\"pi_en_linea\"),\n        hace_s: hace(flow.get(\"pi_visto\"))\n    },\n    ultimo: ultimo\n        ? { tipo: ultimo.tipo, datos: ultimo.datos, hace_s: hace(ultimo.cuando) }\n        : null,\n    registro: registro,\n    ahora: new Date().toISOString()\n};\nreturn msg;\n",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 320,
+    "wires": [
+      [
+        "res_estado"
+      ]
+    ]
+  },
+  {
+    "id": "res_estado",
+    "type": "http response",
+    "z": "tab_comedero",
+    "name": "estado JSON",
+    "statusCode": "200",
+    "headers": {},
+    "x": 640,
+    "y": 320,
+    "wires": []
+  },
+  {
+    "id": "http_panel",
+    "type": "http in",
+    "z": "tab_comedero",
+    "name": "GET /comedero",
+    "url": "/comedero",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 180,
+    "y": 400,
+    "wires": [
+      [
+        "tpl_panel"
+      ]
+    ]
+  },
+  {
+    "id": "tpl_panel",
+    "type": "template",
+    "z": "tab_comedero",
+    "name": "panel",
+    "field": "payload",
+    "fieldType": "msg",
+    "format": "plain",
+    "syntax": "plain",
+    "template": "<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Comedero SPB-42 · Node-RED</title>\n<style>\n  :root {\n    color-scheme: dark;\n    --fondo: #0f1115;\n    --panel: #181c24;\n    --texto: #e8ecf3;\n    --suave: #93a0b5;\n    --borde: #2b3444;\n    --acento: #5b9cf8;\n    --ok: #3ecf8e;\n    --mal: #f2637b;\n  }\n  * { box-sizing: border-box; }\n  body {\n    margin: 0;\n    font-family: system-ui, -apple-system, \"Segoe UI\", sans-serif;\n    background: var(--fondo);\n    color: var(--texto);\n  }\n  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 48px; }\n  h1 { font-size: 20px; margin: 0 0 4px; }\n  .sub { color: var(--suave); font-size: 13px; margin-bottom: 20px; }\n  .rejilla {\n    display: grid;\n    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));\n    gap: 12px;\n    margin-bottom: 20px;\n  }\n  .tarjeta { background: var(--panel); border-radius: 10px; padding: 14px 16px; }\n  .etiqueta {\n    color: var(--suave);\n    font-size: 12px;\n    text-transform: uppercase;\n    letter-spacing: .04em;\n  }\n  .valor { font-size: 19px; font-weight: 600; margin-top: 6px; }\n  .punto {\n    display: inline-block;\n    width: 9px;\n    height: 9px;\n    border-radius: 50%;\n    margin-right: 7px;\n    background: var(--mal);\n  }\n  .punto.si { background: var(--ok); }\n  .fila { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }\n  button {\n    font: inherit;\n    padding: 9px 14px;\n    border-radius: 8px;\n    border: 1px solid var(--borde);\n    background: #212836;\n    color: var(--texto);\n    cursor: pointer;\n  }\n  button:hover { border-color: var(--acento); }\n  button.principal {\n    background: var(--acento);\n    border-color: var(--acento);\n    color: #0b1220;\n    font-weight: 600;\n  }\n  input {\n    font: inherit;\n    padding: 9px 11px;\n    border-radius: 8px;\n    border: 1px solid var(--borde);\n    background: #10151d;\n    color: var(--texto);\n    width: 130px;\n  }\n  table { width: 100%; border-collapse: collapse; font-size: 13px; }\n  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #232a37; }\n  th {\n    color: var(--suave);\n    font-weight: 500;\n    font-size: 12px;\n    text-transform: uppercase;\n  }\n  td.datos { color: var(--suave); }\n  .aviso { font-size: 13px; color: var(--suave); min-height: 18px; }\n  .enlace { color: var(--suave); font-size: 12px; margin-top: 18px; }\n  .enlace a { color: var(--acento); }\n</style>\n</head>\n<body>\n<main>\n  <h1>Comedero SPB-42</h1>\n  <div class=\"sub\">Orquestador MQTT · Node-RED</div>\n\n  <div class=\"rejilla\">\n    <div class=\"tarjeta\">\n      <div class=\"etiqueta\">Placa</div>\n      <div class=\"valor\"><span id=\"p-placa\" class=\"punto\"></span><span id=\"v-placa\">—</span></div>\n    </div>\n    <div class=\"tarjeta\">\n      <div class=\"etiqueta\">Servicio de la Pi</div>\n      <div class=\"valor\"><span id=\"p-pi\" class=\"punto\"></span><span id=\"v-pi\">—</span></div>\n    </div>\n    <div class=\"tarjeta\">\n      <div class=\"etiqueta\">Ultimo evento</div>\n      <div class=\"valor\" id=\"v-evento\">—</div>\n    </div>\n  </div>\n\n  <div class=\"tarjeta\" style=\"margin-bottom:20px\">\n    <div class=\"etiqueta\" style=\"margin-bottom:10px\">Ordenes</div>\n    <div class=\"fila\">\n      <button class=\"principal\" data-accion=\"servir\">Abrir tapa</button>\n      <button data-accion=\"cerrar\">Cerrar tapa</button>\n      <button data-accion=\"reiniciar\">Reiniciar placa</button>\n    </div>\n    <div class=\"fila\">\n      <input id=\"mascota\" placeholder=\"Mascota\" value=\"Jiru\">\n      <input id=\"gramos\" type=\"number\" min=\"1\" step=\"1\" value=\"60\">\n      <button data-accion=\"llamada\">Llamar y servir</button>\n    </div>\n    <div class=\"aviso\" id=\"aviso\"></div>\n  </div>\n\n  <div class=\"tarjeta\">\n    <div class=\"etiqueta\" style=\"margin-bottom:10px\">Ultimos eventos</div>\n    <table>\n      <thead><tr><th>Hace</th><th>Evento</th><th>Datos</th></tr></thead>\n      <tbody id=\"tabla\"></tbody>\n    </table>\n  </div>\n\n  <div class=\"enlace\">\n    Panel tecnico de la Raspberry: <a href=\"http://10.204.126.29:8000/app/eventos/\">/app/eventos/</a>\n  </div>\n</main>\n\n<script>\n(function () {\n  var AVISO = document.getElementById('aviso');\n  var TABLA = document.getElementById('tabla');\n\n  function hace(seg) {\n    if (seg === null || seg === undefined) { return 'sin datos'; }\n    if (seg < 60) { return seg + ' s'; }\n    if (seg < 3600) { return Math.floor(seg / 60) + ' min'; }\n    return Math.floor(seg / 3600) + ' h';\n  }\n\n  function pintar(d) {\n    var placaViva = d.placa.hace_s !== null && d.placa.hace_s < 300;\n    document.getElementById('p-placa').className = 'punto' + (placaViva ? ' si' : '');\n    document.getElementById('v-placa').textContent = d.placa.ip || 'sin IP';\n\n    document.getElementById('p-pi').className = 'punto' + (d.servicio.en_linea ? ' si' : '');\n    document.getElementById('v-pi').textContent = d.servicio.en_linea ? 'en linea' : 'detenido';\n\n    document.getElementById('v-evento').textContent = d.ultimo\n      ? d.ultimo.tipo + ' (hace ' + hace(d.ultimo.hace_s) + ')'\n      : 'sin eventos';\n\n    TABLA.innerHTML = '';\n    (d.registro || []).forEach(function (e) {\n      var fila = document.createElement('tr');\n\n      var c1 = document.createElement('td');\n      c1.textContent = 'hace ' + hace(e.hace_s);\n\n      var c2 = document.createElement('td');\n      c2.textContent = e.tipo;\n\n      var c3 = document.createElement('td');\n      c3.className = 'datos';\n      c3.textContent = JSON.stringify(e.datos);\n\n      fila.appendChild(c1);\n      fila.appendChild(c2);\n      fila.appendChild(c3);\n      TABLA.appendChild(fila);\n    });\n  }\n\n  function refrescar() {\n    fetch('/comedero/estado', { cache: 'no-store' })\n      .then(function (r) { return r.json(); })\n      .then(pintar)\n      .catch(function () { AVISO.textContent = 'Sin respuesta del orquestador.'; });\n  }\n\n  function enviar(cuerpo) {\n    fetch('/comedero/comando', {\n      method: 'POST',\n      headers: { 'content-type': 'application/json' },\n      body: JSON.stringify(cuerpo)\n    })\n      .then(function (r) { return r.json(); })\n      .then(function (d) {\n        AVISO.textContent = d.ok\n          ? 'Orden enviada: ' + d.accion\n          : 'No se pudo: ' + d.error;\n      })\n      .catch(function () { AVISO.textContent = 'No se pudo enviar la orden.'; });\n  }\n\n  function orden(accion) {\n    if (accion === 'reiniciar' && !confirm('Se reinicia la placa. Continuar?')) { return; }\n    if (accion === 'llamada') {\n      enviar({\n        accion: 'llamada',\n        mascota: document.getElementById('mascota').value,\n        gramos: Number(document.getElementById('gramos').value)\n      });\n      return;\n    }\n    enviar({ accion: accion });\n  }\n\n  Array.prototype.forEach.call(\n    document.querySelectorAll('[data-accion]'),\n    function (boton) {\n      boton.addEventListener('click', function () {\n        orden(boton.getAttribute('data-accion'));\n      });\n    }\n  );\n\n  refrescar();\n  setInterval(refrescar, 2000);\n})();\n</script>\n</body>\n</html>\n",
+    "output": "str",
+    "x": 370,
+    "y": 400,
+    "wires": [
+      [
+        "fn_cabeceras_panel"
+      ]
+    ]
+  },
+  {
+    "id": "fn_cabeceras_panel",
+    "type": "function",
+    "z": "tab_comedero",
+    "name": "tipo html",
+    "func": "\nmsg.headers = { \"content-type\": \"text/html; charset=utf-8\" };\nreturn msg;\n",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 560,
+    "y": 400,
+    "wires": [
+      [
+        "res_panel"
+      ]
+    ]
+  },
+  {
+    "id": "res_panel",
+    "type": "http response",
+    "z": "tab_comedero",
+    "name": "pagina",
+    "statusCode": "200",
+    "headers": {},
+    "x": 740,
+    "y": 400,
+    "wires": []
+  },
+  {
+    "id": "http_comando",
+    "type": "http in",
+    "z": "tab_comedero",
+    "name": "POST /comedero/comando",
+    "url": "/comedero/comando",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 210,
+    "y": 480,
+    "wires": [
+      [
+        "fn_comando"
+      ]
+    ]
+  },
+  {
+    "id": "fn_comando",
+    "type": "function",
+    "z": "tab_comedero",
+    "name": "validar orden",
+    "func": "\n// Solo se aceptan las ordenes que entiende la placa (ver firmware/mqtt.py).\nvar VALIDAS = [\"servir\", \"cerrar\", \"reiniciar\", \"llamada\"];\nvar cuerpo = msg.payload || {};\nvar accion = String(cuerpo.accion || \"\").trim();\n\n// La respuesta viaja en el MISMO mensaje que trae msg.res. Una copia pierde\n// el objeto de respuesta y Node-RED contesta lo que quiera.\nfunction responder(estado, contenido) {\n    msg.statusCode = estado;\n    msg.headers = { \"content-type\": \"application/json; charset=utf-8\" };\n    msg.payload = contenido;\n    return msg;\n}\n\nif (VALIDAS.indexOf(accion) === -1) {\n    return [null, responder(400, {\n        ok: false,\n        error: \"accion desconocida\",\n        validas: VALIDAS\n    })];\n}\n\nvar datos = {};\n\nif (accion === \"llamada\") {\n    var mascota = String(cuerpo.mascota || \"\").trim();\n    var gramos = Number(cuerpo.gramos || 0);\n    if (!mascota || !(gramos > 0)) {\n        return [null, responder(400, {\n            ok: false,\n            error: \"llamada necesita mascota y gramos mayores que cero\"\n        })];\n    }\n    datos = { mascota: mascota, gramos: gramos };\n}\n\nvar orden = {\n    topic: \"comedero/SPB-42/comando/\" + accion,\n    payload: datos,\n    qos: 1\n};\n\nreturn [orden, responder(200, { ok: true, accion: accion, datos: datos })];\n",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 480,
+    "wires": [
+      [
+        "out_comando"
+      ],
+      [
+        "res_comando"
+      ]
+    ]
+  },
+  {
+    "id": "out_comando",
+    "type": "mqtt out",
+    "z": "tab_comedero",
+    "name": "comando/#",
+    "topic": "",
+    "qos": "1",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "broker_local",
+    "x": 640,
+    "y": 460,
+    "wires": []
+  },
+  {
+    "id": "res_comando",
+    "type": "http response",
+    "z": "tab_comedero",
+    "name": "resultado de la orden",
+    "statusCode": "",
+    "headers": {},
+    "x": 680,
+    "y": 500,
+    "wires": []
+  }
+]

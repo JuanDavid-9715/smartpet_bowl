@@ -95,5 +95,5 @@ smartpet_bowl/
 - [ ] Esquematico en KiCad.
 - [ ] Firmware ESP32-S3.
 - [ ] Script Python POO.
-- [ ] Dashboard Node-RED.
+- [x] Dashboard Node-RED.
 - [ ] Pruebas y demo.

@@ -1,6 +1,6 @@
 # SmartPet Bowl — Makefile
 
-.PHONY: help setup models firmware upload python node-red test clean
+.PHONY: help setup models firmware upload python node-red flujos test clean
 
 help:
 	@echo "Targets:"
@@ -10,6 +10,7 @@ help:
 	@echo "  upload    Flashea el ESP32-S3"
 	@echo "  python    Ejecuta el script de Raspberry Pi"
 	@echo "  node-red  Inicia Node-RED con el flujo del proyecto"
+	@echo "  flujos    Regenera flows.json desde panel.html"
 	@echo "  test      Ejecuta pruebas"
 	@echo "  clean     Limpia artifacts"
 
@@ -34,7 +35,10 @@ python:
 	python3 software/raspberry-pi/main.py
 
 node-red:
-	node-red -s software/node-red/flows.json
+	node-red --userDir software/node-red
+
+flujos:
+	python3 software/node-red/build_flows.py
 
 test:
 	python3 -m pytest tests

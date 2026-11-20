@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comedero SPB-42 · Node-RED</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --fondo: #0f1115;
+    --panel: #181c24;
+    --texto: #e8ecf3;
+    --suave: #93a0b5;
+    --borde: #2b3444;
+    --acento: #5b9cf8;
+    --ok: #3ecf8e;
+    --mal: #f2637b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--fondo);
+    color: var(--texto);
+  }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--suave); font-size: 13px; margin-bottom: 20px; }
+  .rejilla {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .tarjeta { background: var(--panel); border-radius: 10px; padding: 14px 16px; }
+  .etiqueta {
+    color: var(--suave);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .valor { font-size: 19px; font-weight: 600; margin-top: 6px; }
+  .punto {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 7px;
+    background: var(--mal);
+  }
+  .punto.si { background: var(--ok); }
+  .fila { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  button {
+    font: inherit;
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--borde);
+    background: #212836;
+    color: var(--texto);
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--acento); }
+  button.principal {
+    background: var(--acento);
+    border-color: var(--acento);
+    color: #0b1220;
+    font-weight: 600;
+  }
+  input {
+    font: inherit;
+    padding: 9px 11px;
+    border-radius: 8px;
+    border: 1px solid var(--borde);
+    background: #10151d;
+    color: var(--texto);
+    width: 130px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #232a37; }
+  th {
+    color: var(--suave);
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  td.datos { color: var(--suave); }
+  .aviso { font-size: 13px; color: var(--suave); min-height: 18px; }
+  .enlace { color: var(--suave); font-size: 12px; margin-top: 18px; }
+  .enlace a { color: var(--acento); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Comedero SPB-42</h1>
+  <div class="sub">Orquestador MQTT · Node-RED</div>
+
+  <div class="rejilla">
+    <div class="tarjeta">
+      <div class="etiqueta">Placa</div>
+      <div class="valor"><span id="p-placa" class="punto"></span><span id="v-placa">—</span></div>
+    </div>
+    <div class="tarjeta">
+      <div class="etiqueta">Servicio de la Pi</div>
+      <div class="valor"><span id="p-pi" class="punto"></span><span id="v-pi">—</span></div>
+    </div>
+    <div class="tarjeta">
+      <div class="etiqueta">Ultimo evento</div>
+      <div class="valor" id="v-evento">—</div>
+    </div>
+  </div>
+
+  <div class="tarjeta" style="margin-bottom:20px">
+    <div class="etiqueta" style="margin-bottom:10px">Ordenes</div>
+    <div class="fila">
+      <button class="principal" data-accion="servir">Abrir tapa</button>
+      <button data-accion="cerrar">Cerrar tapa</button>
+      <button data-accion="reiniciar">Reiniciar placa</button>
+    </div>
+    <div class="fila">
+      <input id="mascota" placeholder="Mascota" value="Jiru">
+      <input id="gramos" type="number" min="1" step="1" value="60">
+      <button data-accion="llamada">Llamar y servir</button>
+    </div>
+    <div class="aviso" id="aviso"></div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="etiqueta" style="margin-bottom:10px">Ultimos eventos</div>
+    <table>
+      <thead><tr><th>Hace</th><th>Evento</th><th>Datos</th></tr></thead>
+      <tbody id="tabla"></tbody>
+    </table>
+  </div>
+
+  <div class="enlace">
+    Panel tecnico de la Raspberry: <a href="http://10.204.126.29:8000/app/eventos/">/app/eventos/</a>
+  </div>
+</main>
+
+<script>
+(function () {
+  var AVISO = document.getElementById('aviso');
+  var TABLA = document.getElementById('tabla');
+
+  function hace(seg) {
+    if (seg === null || seg === undefined) { return 'sin datos'; }
+    if (seg < 60) { return seg + ' s'; }
+    if (seg < 3600) { return Math.floor(seg / 60) + ' min'; }
+    return Math.floor(seg / 3600) + ' h';
+  }
+
+  function pintar(d) {
+    var placaViva = d.placa.hace_s !== null && d.placa.hace_s < 300;
+    document.getElementById('p-placa').className = 'punto' + (placaViva ? ' si' : '');
+    document.getElementById('v-placa').textContent = d.placa.ip || 'sin IP';
+
+    document.getElementById('p-pi').className = 'punto' + (d.servicio.en_linea ? ' si' : '');
+    document.getElementById('v-pi').textContent = d.servicio.en_linea ? 'en linea' : 'detenido';
+
+    document.getElementById('v-evento').textContent = d.ultimo
+      ? d.ultimo.tipo + ' (hace ' + hace(d.ultimo.hace_s) + ')'
+      : 'sin eventos';
+
+    TABLA.innerHTML = '';
+    (d.registro || []).forEach(function (e) {
+      var fila = document.createElement('tr');
+
+      var c1 = document.createElement('td');
+      c1.textContent = 'hace ' + hace(e.hace_s);
+
+      var c2 = document.createElement('td');
+      c2.textContent = e.tipo;
+
+      var c3 = document.createElement('td');
+      c3.className = 'datos';
+      c3.textContent = JSON.stringify(e.datos);
+
+      fila.appendChild(c1);
+      fila.appendChild(c2);
+      fila.appendChild(c3);
+      TABLA.appendChild(fila);
+    });
+  }
+
+  function refrescar() {
+    fetch('/comedero/estado', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(pintar)
+      .catch(function () { AVISO.textContent = 'Sin respuesta del orquestador.'; });
+  }
+
+  function enviar(cuerpo) {
+    fetch('/comedero/comando', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(cuerpo)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        AVISO.textContent = d.ok
+          ? 'Orden enviada: ' + d.accion
+          : 'No se pudo: ' + d.error;
+      })
+      .catch(function () { AVISO.textContent = 'No se pudo enviar la orden.'; });
+  }
+
+  function orden(accion) {
+    if (accion === 'reiniciar' && !confirm('Se reinicia la placa. Continuar?')) { return; }
+    if (accion === 'llamada') {
+      enviar({
+        accion: 'llamada',
+        mascota: document.getElementById('mascota').value,
+        gramos: Number(document.getElementById('gramos').value)
+      });
+      return;
+    }
+    enviar({ accion: accion });
+  }
+
+  Array.prototype.forEach.call(
+    document.querySelectorAll('[data-accion]'),
+    function (boton) {
+      boton.addEventListener('click', function () {
+        orden(boton.getAttribute('data-accion'));
+      });
+    }
+  );
+
+  refrescar();
+  setInterval(refrescar, 2000);
+})();
+</script>
+</body>
+</html>
