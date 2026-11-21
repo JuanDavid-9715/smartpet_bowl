@@ -95,11 +95,25 @@ def crop_animal(bgr, confidence=0.30):
     return bgr[y1:y2, x1:x2]
 
 
+def _realzar(gris):
+    """Afila y ecualiza antes de buscar puntos caracteristicos.
+
+    La camara del comedero tiene enfoque fijo y a la distancia de trabajo las
+    tomas salen barridas (nitidez 20-26). La mascara de desenfoque mas CLAHE
+    recupera el borde de la silueta: la misma toma pasa a 1000-1150. Se aplica
+    igual a las referencias y a la toma en vivo, asi que el patron coincide en
+    los dos lados.
+    """
+    suave = cv2.GaussianBlur(gris, (0, 0), 3)
+    afilado = cv2.addWeighted(gris, 2.6, suave, -1.6, 0)
+    return cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8)).apply(afilado)
+
+
 def descriptors(bgr):
     """Puntos caracteristicos del animal. Devuelve ndarray (N,32) uint8 o None."""
     recorte = crop_animal(bgr)
     gris = cv2.cvtColor(recorte, cv2.COLOR_BGR2GRAY)
-    gris = cv2.equalizeHist(gris)
+    gris = _realzar(gris)
     orb = cv2.ORB_create(nfeatures=ORB_FEATURES)
     _, des = orb.detectAndCompute(gris, None)
     return des
